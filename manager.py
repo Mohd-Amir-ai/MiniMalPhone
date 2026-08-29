@@ -153,14 +153,22 @@ def flash_apk_to_phone(apk_file):
     install_cmd = [str(ADB_PATH), "install", "-r", str(apk_file)]
     res = subprocess.run(install_cmd, capture_output=True, text=True)
 
-    if res.returncode == 0 and "Success" in res.stdout:
+    # Check for signature mismatch (INSTALL_FAILED_UPDATE_INCOMPATIBLE)
+    combined_output = (res.stdout or "") + (res.stderr or "")
+    if "INSTALL_FAILED_UPDATE_INCOMPATIBLE" in combined_output:
+        print(f"{YELLOW}[!] Signature mismatch from previous build. Performing clean reinstall...{RESET}")
+        subprocess.run([str(ADB_PATH), "uninstall", "com.minimalphone.launcher"], capture_output=True)
+        res = subprocess.run([str(ADB_PATH), "install", str(apk_file)], capture_output=True, text=True)
+
+    combined_output = (res.stdout or "") + (res.stderr or "")
+    if "Success" in combined_output:
         print(f"\n{GREEN}{BOLD}🎉 SUCCESS: App installed on phone!{RESET}")
         print(f"{CYAN}Launching MiniMalPhone on your screen...{RESET}")
         launch_cmd = [str(ADB_PATH), "shell", "am", "start", "-n", "com.minimalphone.launcher/.MainActivity"]
         subprocess.run(launch_cmd, capture_output=True, text=True)
         return True
     else:
-        print(f"{RED}Installation error: {res.stdout or res.stderr}{RESET}")
+        print(f"{RED}Installation error: {combined_output.strip()}{RESET}")
         return False
 
 
