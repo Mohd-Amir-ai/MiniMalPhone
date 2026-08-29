@@ -55,6 +55,7 @@ import com.minimalphone.launcher.domain.friction.FrictionIntervention
 import com.minimalphone.launcher.domain.friction.interventions.BreathingIntervention
 import com.minimalphone.launcher.domain.productivity.TaskDataSource
 import com.minimalphone.launcher.domain.productivity.TaskItem
+import com.minimalphone.launcher.domain.usage.UsageStatsHelper
 import com.minimalphone.launcher.theme.MiniMalTheme
 import com.minimalphone.launcher.ui.AppDrawerScreen
 import com.minimalphone.launcher.ui.FrictionHostScreen
@@ -62,6 +63,7 @@ import com.minimalphone.launcher.ui.HomeScreen
 import com.minimalphone.launcher.ui.OnboardingScreen
 import com.minimalphone.launcher.ui.SettingsScreen
 import com.minimalphone.launcher.ui.TasksScreen
+import com.minimalphone.launcher.ui.UsageScreen
 import com.minimalphone.launcher.ui.WeatherScreen
 import kotlinx.coroutines.launch
 
@@ -73,6 +75,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var taskDataSource: TaskDataSource
     private lateinit var economyEngine: EconomyEngine
     private lateinit var appRepository: AppRepository
+    private lateinit var usageStatsHelper: UsageStatsHelper
     private lateinit var activeFriction: FrictionIntervention
     private lateinit var roleRequestLauncher: ActivityResultLauncher<Intent>
 
@@ -103,6 +106,7 @@ class MainActivity : ComponentActivity() {
         taskDataSource = LocalTaskDataSourceImpl(prefsStore)
         economyEngine = EconomyEngineImpl(prefsStore, crashReporter)
         appRepository = AppRepositoryImpl(this, prefsStore, crashReporter)
+        usageStatsHelper = UsageStatsHelper(this)
         networkMonitor = NetworkStatusMonitor(this)
         weatherRepository = WeatherRepository(prefsStore)
 
@@ -156,9 +160,6 @@ class MainActivity : ComponentActivity() {
         WindowCompat.getInsetsController(window, window.decorView)?.apply {
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             hide(WindowInsetsCompat.Type.statusBars())
-        }
-        if (!isDefaultHomeState && prefsStore.isFirstLaunchCompleted) {
-            requestSetDefaultLauncher()
         }
     }
 
@@ -231,8 +232,8 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun MainContent() {
         val scope = rememberCoroutineScope()
-        // Page 0: Weather, Page 1: Tasks, Page 2: Home (default), Page 3: App Drawer
-        val pagerState = rememberPagerState(initialPage = 2, pageCount = { 4 })
+        // Page 0: Weather, Page 1: Tasks, Page 2: Home (default), Page 3: App Drawer, Page 4: Usage
+        val pagerState = rememberPagerState(initialPage = 2, pageCount = { 5 })
 
         val allApps = remember { mutableStateListOf<AppModel>() }
         val tasks = remember { mutableStateListOf<TaskItem>() }
@@ -491,6 +492,18 @@ class MainActivity : ComponentActivity() {
                         },
                         onOpenSettings = {
                             isSettingsOpen = true
+                        }
+                    )
+                    4 -> UsageScreen(
+                        usageStatsHelper = usageStatsHelper,
+                        onLaunchApp = { packageName ->
+                            if (prefsStore.isMonochromeEnabled && isDefaultHomeState) {
+                                MonochromeModeHelper.enableMonochrome(this@MainActivity)
+                            }
+                            appRepository.launchApp(packageName)
+                        },
+                        onNavigateBack = {
+                            scope.launch { pagerState.animateScrollToPage(3) }
                         }
                     )
                 }

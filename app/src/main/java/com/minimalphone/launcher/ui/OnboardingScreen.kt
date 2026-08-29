@@ -277,7 +277,7 @@ private fun OnboardingStepPermissions(
                         text = if (isGrayscaleGranted) "ACTIVE" else "ADB REQUIRED",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = if (isGrayscaleGranted) Color(0xFF7CE38B) else Color(0xFFFFB74D)
+                        color = if (isGrayscaleGranted) OffWhite else Color(0xFFFFB74D)
                     )
                 }
                 Spacer(modifier = Modifier.height(4.dp))
@@ -304,7 +304,7 @@ private fun SetupActionCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .background(Color(0xFF141518))
-            .border(1.dp, if (isDone) Color(0xFF4CAF50) else Color(0xFF2A2D33), RoundedCornerShape(10.dp))
+            .border(1.dp, if (isDone) PureWhite else Color(0xFF2A2D33), RoundedCornerShape(10.dp))
             .padding(14.dp)
     ) {
         Column {
@@ -325,10 +325,10 @@ private fun SetupActionCard(
                 onClick = onClick,
                 enabled = !isDone,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isDone) Color(0xFF253325) else PureWhite,
-                    contentColor = if (isDone) Color(0xFF7CE38B) else PureBlack,
-                    disabledContainerColor = Color(0xFF253325),
-                    disabledContentColor = Color(0xFF7CE38B)
+                    containerColor = if (isDone) Color(0xFF222428) else PureWhite,
+                    contentColor = if (isDone) OffWhite else PureBlack,
+                    disabledContainerColor = Color(0xFF222428),
+                    disabledContentColor = OffWhite
                 ),
                 shape = RoundedCornerShape(6.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -337,7 +337,7 @@ private fun SetupActionCard(
                     text = buttonLabel,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
-                    color = if (isDone) Color(0xFF7CE38B) else PureBlack
+                    color = if (isDone) OffWhite else PureBlack
                 )
             }
         }

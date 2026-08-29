@@ -1,6 +1,5 @@
 package com.minimalphone.launcher.ui
 
-import android.app.role.RoleManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -13,26 +12,28 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.HourglassEmpty
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.minimalphone.launcher.core.system.DefaultLauncherHelper
 import com.minimalphone.launcher.core.system.MonochromeModeHelper
 import com.minimalphone.launcher.core.wallpaper.WallpaperHelper
 import com.minimalphone.launcher.data.local.LocalPreferencesStore
@@ -64,38 +65,25 @@ fun SettingsScreen(
     var isAdbGranted by remember { mutableStateOf(MonochromeModeHelper.isPermissionGranted(context)) }
     var showDistractionModal by remember { mutableStateOf(false) }
 
-    // Re-check ADB permission on render
+    val oemInfo = remember { DefaultLauncherHelper.getOemLauncherInfo(context) }
+
     LaunchedEffect(Unit) {
         isAdbGranted = MonochromeModeHelper.isPermissionGranted(context)
     }
 
     fun handleRestoreAndExit() {
-        // 1. Immediately disable hardware grayscale Daltonizer
-        MonochromeModeHelper.disableMonochrome(context)
         prefsStore.isMonochromeEnabled = false
         isMonochrome = false
-
-        // 2. Disable custom lockscreen interceptor
         prefsStore.isCustomLockScreenEnabled = false
         isCustomLockScreen = false
 
-        Toast.makeText(context, "Colors restored! Select your default home app.", Toast.LENGTH_LONG).show()
+        Toast.makeText(
+            context,
+            "Colors restored! Returning to ${oemInfo?.label ?: "One UI Home"}...",
+            Toast.LENGTH_SHORT
+        ).show()
 
-        // 3. Open Android Default Home settings
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val intent = Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
-                context.startActivity(intent)
-            } else {
-                val intent = Intent(Settings.ACTION_HOME_SETTINGS)
-                context.startActivity(intent)
-            }
-        } catch (e: Exception) {
-            try {
-                val intent = Intent(Settings.ACTION_SETTINGS)
-                context.startActivity(intent)
-            } catch (ignored: Exception) {}
-        }
+        DefaultLauncherHelper.restoreDefaultLauncher(context)
     }
 
     Box(
@@ -120,7 +108,7 @@ fun SettingsScreen(
             ) {
                 IconButton(onClick = onNavigateBack, modifier = Modifier.size(36.dp)) {
                     Icon(
-                        imageVector = Icons.Default.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back to Home",
                         tint = PureWhite
                     )
@@ -139,16 +127,45 @@ fun SettingsScreen(
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // 1. 🚨 EMERGENCY & EXIT
+                // 1. EMERGENCY & RESTORE
                 item {
-                    SettingsSectionCard(title = "🚨 EMERGENCY & EXIT") {
+                    SettingsSectionCard(
+                        title = "EMERGENCY & RESTORE",
+                        icon = Icons.Default.PowerSettingsNew
+                    ) {
                         Text(
                             text = "Want to turn off MiniMalPhone and return your phone to its normal original state?",
                             style = MaterialTheme.typography.bodySmall,
                             color = LightGray
                         )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Detected OEM Launcher info pill
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color(0xFF1E2024))
+                                .border(1.dp, Color(0xFF2E3138), RoundedCornerShape(6.dp))
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Original Launcher:",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MidGray
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = oemInfo?.label ?: "Samsung One UI Home",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = PureWhite
+                            )
+                        }
 
                         Spacer(modifier = Modifier.height(12.dp))
 
@@ -194,9 +211,12 @@ fun SettingsScreen(
                     }
                 }
 
-                // 2. 🎨 DISPLAY & AESTHETICS
+                // 2. DISPLAY & AESTHETICS
                 item {
-                    SettingsSectionCard(title = "🎨 DISPLAY & AESTHETICS") {
+                    SettingsSectionCard(
+                        title = "DISPLAY & AESTHETICS",
+                        icon = Icons.Default.Palette
+                    ) {
                         // Hardware Monochrome Switch
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -211,9 +231,9 @@ fun SettingsScreen(
                                     color = PureWhite
                                 )
                                 Text(
-                                    text = if (isAdbGranted) "Active • All apps render in true B/W" else "Requires WRITE_SECURE_SETTINGS via ADB",
+                                    text = if (isAdbGranted) "Active · All apps render in true B/W" else "Requires WRITE_SECURE_SETTINGS permission",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = if (isAdbGranted) Color(0xFF7CE38B) else Color(0xFFFFB74D)
+                                    color = if (isAdbGranted) OffWhite else Color(0xFF9E9E9E)
                                 )
                             }
 
@@ -319,9 +339,12 @@ fun SettingsScreen(
                     }
                 }
 
-                // 3. 🔒 LOCK SCREEN
+                // 3. MINIMAL LOCK SCREEN
                 item {
-                    SettingsSectionCard(title = "🔒 MINIMAL LOCK SCREEN") {
+                    SettingsSectionCard(
+                        title = "MINIMAL LOCK SCREEN",
+                        icon = Icons.Default.Lock
+                    ) {
                         // Toggle Custom Lock Screen
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -417,9 +440,12 @@ fun SettingsScreen(
                     }
                 }
 
-                // 4. ⏳ FRICTION & FOCUS ECONOMY
+                // 4. FRICTION & FOCUS ECONOMY
                 item {
-                    SettingsSectionCard(title = "⏳ FRICTION & FOCUS ECONOMY") {
+                    SettingsSectionCard(
+                        title = "FRICTION & FOCUS ECONOMY",
+                        icon = Icons.Default.HourglassEmpty
+                    ) {
                         // Current Credits Banner
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -527,9 +553,12 @@ fun SettingsScreen(
                     }
                 }
 
-                // 5. ℹ️ ABOUT & VERSION
+                // 5. ABOUT MINIMALPHONE
                 item {
-                    SettingsSectionCard(title = "ℹ️ ABOUT MINIMALPHONE") {
+                    SettingsSectionCard(
+                        title = "ABOUT MINIMALPHONE",
+                        icon = Icons.Default.Info
+                    ) {
                         Text(
                             text = "MiniMalPhone v1.0.0",
                             style = MaterialTheme.typography.bodyMedium,
@@ -544,7 +573,7 @@ fun SettingsScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "MIT License • 100% Offline & Private",
+                            text = "MIT License · 100% Offline & Private",
                             style = MaterialTheme.typography.labelSmall,
                             color = MidGray
                         )
@@ -568,25 +597,39 @@ fun SettingsScreen(
 @Composable
 private fun SettingsSectionCard(
     title: String,
+    icon: ImageVector? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF111215))
-            .border(1.dp, Color(0xFF20232A), RoundedCornerShape(12.dp))
+            .background(Color(0xFF141517))
+            .border(1.dp, Color(0xFF222428), RoundedCornerShape(12.dp))
             .padding(16.dp)
     ) {
         Column {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelSmall,
-                letterSpacing = 1.5.sp,
-                fontWeight = FontWeight.Bold,
-                color = MidGray
-            )
-            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 12.dp)
+            ) {
+                if (icon != null) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MidGray,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelSmall,
+                    letterSpacing = 1.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MidGray
+                )
+            }
             content()
         }
     }
