@@ -33,19 +33,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.minimalphone.launcher.domain.apps.EssentialAppType
 import com.minimalphone.launcher.domain.productivity.EventItem
-import com.minimalphone.launcher.theme.DarkCard
-import com.minimalphone.launcher.theme.DarkGray600
-import com.minimalphone.launcher.theme.DarkGray700
-import com.minimalphone.launcher.theme.LightGray
-import com.minimalphone.launcher.theme.MidGray
-import com.minimalphone.launcher.theme.PureBlack
-import com.minimalphone.launcher.theme.PureWhite
+import com.minimalphone.launcher.ui.components.MonochromeWallpaper
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -79,99 +74,103 @@ fun HomeScreen(
         }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(PureBlack)
-            .padding(horizontal = 26.dp, vertical = 30.dp),
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
-        // TOP HEADER: Focus points & subtle battery
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Reward Points Pill
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(DarkCard)
-                    .border(1.dp, DarkGray600, RoundedCornerShape(6.dp))
-                    .clickable { onNavigateToTasks() }
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = "$focusCredits pts",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = PureWhite
-                )
-            }
+    // Top Charcoal typography for high contrast over the light-gray sky
+    val topPrimaryTextColor = Color(0xFF1E2126)
+    val topSecondaryTextColor = Color(0xFF4A4E56)
 
-            if (batteryPct >= 0) {
-                Text(
-                    text = "$batteryPct%",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MidGray
-                )
-            }
-        }
+    Box(modifier = modifier.fillMaxSize()) {
+        // Procedural Layered Monochrome Wallpaper
+        MonochromeWallpaper()
 
-        // UPPER-MIDDLE SECTION: Left-Aligned Time Widget + Immediately followed by Upcoming Schedules
+        // Content Layout (Positioned from Top to Bottom)
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp)
+                .fillMaxSize()
+                .padding(horizontal = 26.dp, vertical = 28.dp)
         ) {
-            // Left-aligned Stacked Minimalist Clock (inspired by photo)
+            // 1. TOP HEADER: Reward points pill & battery indicator
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Focus Points Pill (Dark on light backdrop)
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color(0x33000000))
+                        .border(1.dp, Color(0x33000000), RoundedCornerShape(6.dp))
+                        .clickable { onNavigateToTasks() }
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "$focusCredits pts",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = topPrimaryTextColor
+                    )
+                }
+
+                if (batteryPct >= 0) {
+                    Text(
+                        text = "$batteryPct%",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = topSecondaryTextColor
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 2. TOP-LEFT STACKED CLOCK WIDGET (Directly matching photo)
             Column(horizontalAlignment = Alignment.Start) {
                 Text(
                     text = hourString.ifEmpty { "17" },
-                    fontSize = 62.sp,
-                    lineHeight = 62.sp,
+                    fontSize = 66.sp,
+                    lineHeight = 66.sp,
                     fontWeight = FontWeight.Light,
-                    letterSpacing = (-1).sp,
-                    color = PureWhite
+                    letterSpacing = (-1.5).sp,
+                    color = topPrimaryTextColor
                 )
                 Text(
                     text = minuteString.ifEmpty { "06" },
-                    fontSize = 62.sp,
-                    lineHeight = 62.sp,
+                    fontSize = 66.sp,
+                    lineHeight = 66.sp,
                     fontWeight = FontWeight.Light,
-                    letterSpacing = (-1).sp,
-                    color = PureWhite
+                    letterSpacing = (-1.5).sp,
+                    color = topPrimaryTextColor
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = dateString.ifEmpty { "Thu 6 March" },
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Normal,
-                    color = LightGray
+                    color = topSecondaryTextColor
                 )
             }
 
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Immediately After the Time Widget: Upcoming Schedules
+            // 3. UPCOMING SCHEDULES (Placed directly under the clock widget)
             Text(
                 text = "UPCOMING SCHEDULES",
                 style = MaterialTheme.typography.labelSmall,
                 letterSpacing = 2.sp,
-                color = MidGray
+                color = topSecondaryTextColor
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(DarkCard)
-                    .border(1.dp, DarkGray600, RoundedCornerShape(12.dp))
-                    .padding(horizontal = 18.dp, vertical = 16.dp)
+                    .background(Color(0xDD1C1E23))
+                    .border(1.dp, Color(0x44FFFFFF), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 18.dp, vertical = 14.dp)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     events.forEach { event ->
                         Row(
                             modifier = Modifier
@@ -188,7 +187,7 @@ fun HomeScreen(
                                     modifier = Modifier
                                         .size(8.dp)
                                         .clip(CircleShape)
-                                        .background(if (event.isCompleted) MidGray else PureWhite)
+                                        .background(if (event.isCompleted) Color(0xFF6E727A) else Color.White)
                                 )
 
                                 Spacer(modifier = Modifier.width(12.dp))
@@ -197,27 +196,24 @@ fun HomeScreen(
                                     text = event.title,
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.Normal,
-                                    color = if (event.isCompleted) MidGray else PureWhite
+                                    color = if (event.isCompleted) Color(0xFF6E727A) else Color.White
                                 )
                             }
 
                             Text(
                                 text = event.timeFormatted,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = if (event.isCompleted) MidGray else LightGray
+                                color = if (event.isCompleted) Color(0xFF6E727A) else Color(0xFFD0D3D8)
                             )
                         }
                     }
                 }
             }
-        }
 
-        // BOTTOM SECTION: Circular Minimal App Icons + Navigation
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Row of 4 Circular Minimalist Icon Shortcuts (Phone, Search, Messages, Camera)
+            // Pushes everything else down so time and schedules stay firmly at the top
+            Spacer(modifier = Modifier.weight(1f))
+
+            // 4. BOTTOM SECTION: 4 Circular Minimal Icon Buttons
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -250,9 +246,9 @@ fun HomeScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // Navigation footers
+            // Minimal Navigation Footers
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -261,7 +257,7 @@ fun HomeScreen(
                 Text(
                     text = "← Tasks",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MidGray,
+                    color = Color(0xFF8E9299),
                     modifier = Modifier
                         .clickable { onNavigateToTasks() }
                         .padding(vertical = 4.dp)
@@ -270,7 +266,7 @@ fun HomeScreen(
                 Text(
                     text = "All Apps →",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MidGray,
+                    color = Color(0xFF8E9299),
                     modifier = Modifier
                         .clickable { onNavigateToDrawer() }
                         .padding(vertical = 4.dp)
@@ -280,9 +276,6 @@ fun HomeScreen(
     }
 }
 
-/**
- * Minimal Circular Icon Button matching the reference setup in the uploaded photo.
- */
 @Composable
 private fun MinimalCircularIconButton(
     icon: ImageVector,
@@ -293,15 +286,15 @@ private fun MinimalCircularIconButton(
         modifier = Modifier
             .size(54.dp)
             .clip(CircleShape)
-            .background(DarkGray700)
-            .border(1.dp, DarkGray600, CircleShape)
+            .background(Color(0xFF222429))
+            .border(1.dp, Color(0xFF3E434D), CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = PureWhite,
+            tint = Color.White,
             modifier = Modifier.size(24.dp)
         )
     }
