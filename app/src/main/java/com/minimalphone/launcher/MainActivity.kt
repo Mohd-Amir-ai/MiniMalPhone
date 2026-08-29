@@ -76,7 +76,7 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.statusBarColor = android.graphics.Color.TRANSPARENT
         window.navigationBarColor = android.graphics.Color.TRANSPARENT
-        WindowCompat.getInsetsController(window, window.decorView).apply {
+        WindowCompat.getInsetsController(window, window.decorView)?.apply {
             isAppearanceLightStatusBars = true // Dark status icons (battery, wifi, time)
             isAppearanceLightNavigationBars = false // Light gesture bar for dark base
         }
