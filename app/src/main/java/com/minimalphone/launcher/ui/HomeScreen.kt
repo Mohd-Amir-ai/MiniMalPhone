@@ -40,7 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.minimalphone.launcher.domain.apps.EssentialAppType
-import com.minimalphone.launcher.domain.productivity.EventItem
+import com.minimalphone.launcher.domain.productivity.TaskItem
 import com.minimalphone.launcher.ui.components.MonochromeWallpaper
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
@@ -49,12 +49,12 @@ import java.util.Locale
 
 @Composable
 fun HomeScreen(
-    events: List<EventItem>,
+    tasks: List<TaskItem>,
     focusCredits: Int,
     batteryPct: Int,
     isDefaultLauncher: Boolean,
     onLaunchEssential: (EssentialAppType) -> Unit,
-    onToggleEvent: (EventItem) -> Unit,
+    onToggleTask: (TaskItem) -> Unit,
     onRequestSetDefaultLauncher: () -> Unit,
     onApplyDeviceWallpaper: () -> Unit,
     onNavigateToTasks: () -> Unit,
@@ -79,26 +79,28 @@ fun HomeScreen(
     }
 
     // Top Charcoal typography for high contrast over the light-gray sky
-    val topPrimaryTextColor = Color(0xFF1E2126)
-    val topSecondaryTextColor = Color(0xFF4A4E56)
+    val topPrimaryTextColor = Color(0xFF16181C)
+    val topSecondaryTextColor = Color(0xFF484C54)
+
+    val upcomingTasks = tasks.filter { !it.isCompleted }.take(3)
 
     Box(modifier = modifier.fillMaxSize()) {
         // Procedural Layered Monochrome Wallpaper
         MonochromeWallpaper()
 
-        // Content Layout (Positioned from Top to Bottom)
+        // Content Layout
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 26.dp, vertical = 28.dp)
+                .padding(horizontal = 26.dp, vertical = 26.dp)
         ) {
-            // 1. TOP HEADER: Points earned so far, Wallpaper Sync & Battery
+            // 1. TOP HEADER: Points earned so far & Battery
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Points Earned So Far Badge
+                // Points Earned So Far Pill
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
@@ -116,7 +118,7 @@ fun HomeScreen(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Set Device & Lockscreen Wallpaper quick button
+                    // Sync Device Wallpaper icon button
                     Box(
                         modifier = Modifier
                             .size(28.dp)
@@ -127,7 +129,7 @@ fun HomeScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Wallpaper,
-                            contentDescription = "Sync Device Wallpaper",
+                            contentDescription = "Sync Wallpaper",
                             tint = topPrimaryTextColor,
                             modifier = Modifier.size(16.dp)
                         )
@@ -145,7 +147,7 @@ fun HomeScreen(
                 }
             }
 
-            // 1b. Prompt Banner if not default home launcher yet
+            // 1b. Set as Default Home banner (if not default)
             if (!isDefaultLauncher) {
                 Spacer(modifier = Modifier.height(10.dp))
                 Row(
@@ -174,44 +176,57 @@ fun HomeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // 2. TOP-LEFT STACKED CLOCK WIDGET (Directly matching photo)
+            // 2. TOP-LEFT STACKED CLOCK WIDGET (Bolder and bigger)
             Column(horizontalAlignment = Alignment.Start) {
                 Text(
                     text = hourString.ifEmpty { "17" },
-                    fontSize = 66.sp,
-                    lineHeight = 66.sp,
-                    fontWeight = FontWeight.Light,
-                    letterSpacing = (-1.5).sp,
+                    fontSize = 78.sp,
+                    lineHeight = 76.sp,
+                    fontWeight = FontWeight.Normal,
+                    letterSpacing = (-2).sp,
                     color = topPrimaryTextColor
                 )
                 Text(
                     text = minuteString.ifEmpty { "06" },
-                    fontSize = 66.sp,
-                    lineHeight = 66.sp,
-                    fontWeight = FontWeight.Light,
-                    letterSpacing = (-1.5).sp,
+                    fontSize = 78.sp,
+                    lineHeight = 76.sp,
+                    fontWeight = FontWeight.Normal,
+                    letterSpacing = (-2).sp,
                     color = topPrimaryTextColor
                 )
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = dateString.ifEmpty { "Thu 6 March" },
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Normal,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
                     color = topSecondaryTextColor
                 )
             }
 
-            Spacer(modifier = Modifier.height(22.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // 3. UPCOMING SCHEDULES (Placed directly under the clock widget)
-            Text(
-                text = "UPCOMING SCHEDULES",
-                style = MaterialTheme.typography.labelSmall,
-                letterSpacing = 2.sp,
-                color = topSecondaryTextColor
-            )
+            // 3. UPCOMING SCHEDULES (Non-all capital text)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Upcoming schedules",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = topPrimaryTextColor
+                )
+
+                Text(
+                    text = "View all →",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = topSecondaryTextColor,
+                    modifier = Modifier.clickable { onNavigateToTasks() }
+                )
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -223,41 +238,67 @@ fun HomeScreen(
                     .border(1.dp, Color(0x44FFFFFF), RoundedCornerShape(12.dp))
                     .padding(horizontal = 18.dp, vertical = 14.dp)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    events.forEach { event ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onToggleEvent(event) },
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
+                if (upcomingTasks.isEmpty()) {
+                    Text(
+                        text = "All caught up! Tap 'View all' to add a schedule.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFFA0A4AC)
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        upcomingTasks.forEach { task ->
                             Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onToggleTask(task) },
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f)
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .clip(CircleShape)
-                                        .background(if (event.isCompleted) Color(0xFF6E727A) else Color.White)
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.White)
+                                    )
 
-                                Spacer(modifier = Modifier.width(12.dp))
+                                    Spacer(modifier = Modifier.width(12.dp))
 
-                                Text(
-                                    text = event.title,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Normal,
-                                    color = if (event.isCompleted) Color(0xFF6E727A) else Color.White
-                                )
+                                    Text(
+                                        text = task.title,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Normal,
+                                        color = Color.White
+                                    )
+                                }
+
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = task.scheduledTime,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color(0xFFD0D3D8)
+                                    )
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(3.dp))
+                                            .background(Color(0xFF2C2F36))
+                                            .padding(horizontal = 5.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = "+${task.rewardPoints}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontSize = 9.sp,
+                                            color = Color.White
+                                        )
+                                    }
+                                }
                             }
-
-                            Text(
-                                text = event.timeFormatted,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (event.isCompleted) Color(0xFF6E727A) else Color(0xFFD0D3D8)
-                            )
                         }
                     }
                 }

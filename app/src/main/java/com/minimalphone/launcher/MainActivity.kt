@@ -45,7 +45,6 @@ import com.minimalphone.launcher.domain.economy.EconomyEngine
 import com.minimalphone.launcher.domain.economy.EconomyEvent
 import com.minimalphone.launcher.domain.friction.FrictionIntervention
 import com.minimalphone.launcher.domain.friction.interventions.BreathingIntervention
-import com.minimalphone.launcher.domain.productivity.EventItem
 import com.minimalphone.launcher.domain.productivity.TaskDataSource
 import com.minimalphone.launcher.domain.productivity.TaskItem
 import com.minimalphone.launcher.theme.MiniMalTheme
@@ -53,7 +52,6 @@ import com.minimalphone.launcher.ui.AppDrawerScreen
 import com.minimalphone.launcher.ui.FrictionHostScreen
 import com.minimalphone.launcher.ui.HomeScreen
 import com.minimalphone.launcher.ui.TasksScreen
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -73,7 +71,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Initialize Core Crash Reporter (ready for Sentry / Firebase)
+        // Initialize Core Crash Reporter
         crashReporter = NoOpCrashReporter().apply { initialize() }
         crashReporter.logBreadcrumb("Lifecycle", "MainActivity onCreate")
 
@@ -161,12 +159,6 @@ class MainActivity : ComponentActivity() {
 
         val allApps = remember { mutableStateListOf<AppModel>() }
         val tasks = remember { mutableStateListOf<TaskItem>() }
-        val events = remember {
-            mutableStateListOf(
-                EventItem(id = 1L, title = "Make a post on X", timeFormatted = "2:30 PM"),
-                EventItem(id = 2L, title = "Study book", timeFormatted = "3:00 PM")
-            )
-        }
 
         var focusCredits by remember { mutableIntStateOf(economyEngine.getCurrentBalance()) }
         var batteryPct by remember { mutableIntStateOf(-1) }
@@ -269,16 +261,22 @@ class MainActivity : ComponentActivity() {
                                 taskDataSource.updateTaskStatus(task.id, nextStatus)
                                 if (nextStatus) {
                                     economyEngine.processEvent(EconomyEvent.TaskCompleted(task.id, task.rewardPoints))
-                                    Toast.makeText(this@MainActivity, "+${task.rewardPoints} Focus Credits earned!", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(this@MainActivity, "+${task.rewardPoints} points earned!", Toast.LENGTH_SHORT).show()
                                 } else {
                                     economyEngine.processEvent(EconomyEvent.TaskUncompleted(task.id, task.rewardPoints))
                                 }
                                 reloadData()
                             }
                         },
-                        onAddTask = { title ->
+                        onSaveTask = { task ->
                             scope.launch {
-                                taskDataSource.addTask(title = title)
+                                taskDataSource.saveTask(task)
+                                reloadData()
+                            }
+                        },
+                        onSwapTasks = { taskA, taskB ->
+                            scope.launch {
+                                taskDataSource.swapTaskTimingsAndPositions(taskA.id, taskB.id)
                                 reloadData()
                             }
                         },
@@ -290,17 +288,24 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                     1 -> HomeScreen(
-                        events = events,
+                        tasks = tasks,
                         focusCredits = focusCredits,
                         batteryPct = batteryPct,
                         isDefaultLauncher = isDefaultHomeState,
                         onLaunchEssential = { type ->
                             appRepository.launchEssentialApp(type)
                         },
-                        onToggleEvent = { event ->
-                            val index = events.indexOfFirst { it.id == event.id }
-                            if (index != -1) {
-                                events[index] = event.copy(isCompleted = !event.isCompleted)
+                        onToggleTask = { task ->
+                            scope.launch {
+                                val nextStatus = !task.isCompleted
+                                taskDataSource.updateTaskStatus(task.id, nextStatus)
+                                if (nextStatus) {
+                                    economyEngine.processEvent(EconomyEvent.TaskCompleted(task.id, task.rewardPoints))
+                                    Toast.makeText(this@MainActivity, "+${task.rewardPoints} points earned!", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    economyEngine.processEvent(EconomyEvent.TaskUncompleted(task.id, task.rewardPoints))
+                                }
+                                reloadData()
                             }
                         },
                         onRequestSetDefaultLauncher = {

@@ -5,7 +5,7 @@ import android.content.SharedPreferences
 
 class LocalPreferencesStore(context: Context) {
     private val prefs: SharedPreferences =
-        context.getSharedPreferences("minimal_phone_prefs_v2", Context.MODE_PRIVATE)
+        context.getSharedPreferences("minimal_phone_prefs_v3", Context.MODE_PRIVATE)
 
     companion object {
         private const val KEY_CREDITS = "focus_credits"
@@ -15,7 +15,10 @@ class LocalPreferencesStore(context: Context) {
         private const val KEY_TASK_IDS = "task_id_set"
         private const val PREFIX_TASK_TITLE = "task_t_"
         private const val PREFIX_TASK_DONE = "task_d_"
-        private const val PREFIX_TASK_POINTS = "task_p_"
+        private const val PREFIX_TASK_DIFF = "task_diff_"
+        private const val PREFIX_TASK_TIME = "task_time_"
+        private const val PREFIX_TASK_DATE = "task_date_"
+        private const val PREFIX_TASK_ORDER = "task_order_"
     }
 
     var credits: Int
@@ -47,19 +50,37 @@ class LocalPreferencesStore(context: Context) {
     fun getTaskIds(): Set<String> =
         prefs.getStringSet(KEY_TASK_IDS, emptySet()) ?: emptySet()
 
-    fun saveTaskRaw(id: Long, title: String, isDone: Boolean, points: Int) {
+    fun saveTaskRaw(
+        id: Long,
+        title: String,
+        isDone: Boolean,
+        difficulty: String,
+        time: String,
+        date: String,
+        order: Int
+    ) {
         val ids = getTaskIds().toMutableSet()
         ids.add(id.toString())
         prefs.edit()
             .putStringSet(KEY_TASK_IDS, ids)
             .putString("$PREFIX_TASK_TITLE$id", title)
             .putBoolean("$PREFIX_TASK_DONE$id", isDone)
-            .putInt("$PREFIX_TASK_POINTS$id", points)
+            .putString("$PREFIX_TASK_DIFF$id", difficulty)
+            .putString("$PREFIX_TASK_TIME$id", time)
+            .putString("$PREFIX_TASK_DATE$id", date)
+            .putInt("$PREFIX_TASK_ORDER$id", order)
             .apply()
     }
 
     fun updateTaskDoneRaw(id: Long, isDone: Boolean) {
         prefs.edit().putBoolean("$PREFIX_TASK_DONE$id", isDone).apply()
+    }
+
+    fun updateTaskTimeAndOrderRaw(id: Long, newTime: String, newOrder: Int) {
+        prefs.edit()
+            .putString("$PREFIX_TASK_TIME$id", newTime)
+            .putInt("$PREFIX_TASK_ORDER$id", newOrder)
+            .apply()
     }
 
     fun removeTaskRaw(id: Long) {
@@ -69,11 +90,17 @@ class LocalPreferencesStore(context: Context) {
             .putStringSet(KEY_TASK_IDS, ids)
             .remove("$PREFIX_TASK_TITLE$id")
             .remove("$PREFIX_TASK_DONE$id")
-            .remove("$PREFIX_TASK_POINTS$id")
+            .remove("$PREFIX_TASK_DIFF$id")
+            .remove("$PREFIX_TASK_TIME$id")
+            .remove("$PREFIX_TASK_DATE$id")
+            .remove("$PREFIX_TASK_ORDER$id")
             .apply()
     }
 
     fun getTaskTitle(id: Long): String? = prefs.getString("$PREFIX_TASK_TITLE$id", null)
     fun getTaskDone(id: Long): Boolean = prefs.getBoolean("$PREFIX_TASK_DONE$id", false)
-    fun getTaskPoints(id: Long): Int = prefs.getInt("$PREFIX_TASK_POINTS$id", 15)
+    fun getTaskDifficulty(id: Long): String = prefs.getString("$PREFIX_TASK_DIFF$id", "MEDIUM") ?: "MEDIUM"
+    fun getTaskTime(id: Long): String = prefs.getString("$PREFIX_TASK_TIME$id", "12:00 PM") ?: "12:00 PM"
+    fun getTaskDate(id: Long): String = prefs.getString("$PREFIX_TASK_DATE$id", "Today") ?: "Today"
+    fun getTaskOrder(id: Long): Int = prefs.getInt("$PREFIX_TASK_ORDER$id", 0)
 }
