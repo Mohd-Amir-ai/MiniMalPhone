@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">MiniMal</string>
+    <string name="tasks_title">Daily Focus</string>
+    <string name="all_apps_title">All Apps</string>
+    <string name="search_placeholder">Search apps…</string>
+    <string name="focus_credits">Focus Credits</string>
+    <string name="rule_of_three">Today\'s Core Priorities</string>
+</resources>
