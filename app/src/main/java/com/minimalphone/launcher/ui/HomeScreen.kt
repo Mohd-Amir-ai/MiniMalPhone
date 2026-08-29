@@ -34,6 +34,8 @@ import com.minimalphone.launcher.core.system.RealNetworkStatus
 import com.minimalphone.launcher.domain.apps.EssentialAppType
 import com.minimalphone.launcher.domain.productivity.TaskItem
 import com.minimalphone.launcher.ui.components.MonochromeWallpaper
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -47,20 +49,22 @@ fun HomeScreen(
     batteryPct: Int,
     networkStatus: RealNetworkStatus,
     isDefaultLauncher: Boolean,
+    is24Hour: Boolean = true,
     onLaunchEssential: (EssentialAppType) -> Unit,
     onToggleTask: (TaskItem) -> Unit,
     onRequestSetDefaultLauncher: () -> Unit,
     onApplyDeviceWallpaper: () -> Unit,
     onNavigateToTasks: () -> Unit,
     onNavigateToDrawer: () -> Unit,
+    onOpenSettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var hourString by remember { mutableStateOf("") }
     var minuteString by remember { mutableStateOf("") }
     var dateString by remember { mutableStateOf("") }
 
-    LaunchedEffect(Unit) {
-        val hourFormat = SimpleDateFormat("HH", Locale.getDefault())
+    LaunchedEffect(is24Hour) {
+        val hourFormat = SimpleDateFormat(if (is24Hour) "HH" else "hh", Locale.getDefault())
         val minuteFormat = SimpleDateFormat("mm", Locale.getDefault())
         val dateFormat = SimpleDateFormat("EEE d MMMM", Locale.getDefault())
         while (true) {
@@ -96,7 +100,13 @@ fun HomeScreen(
 
     val next30MinTasks = tasks.filter { !it.isCompleted && isWithinNext30Minutes(it.scheduledTime) }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectTapGestures(onLongPress = { onOpenSettings() })
+            }
+    ) {
         // Procedural Layered Monochrome Wallpaper fills 100% of the screen
         MonochromeWallpaper()
 

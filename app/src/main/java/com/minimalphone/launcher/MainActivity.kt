@@ -59,6 +59,8 @@ import com.minimalphone.launcher.theme.MiniMalTheme
 import com.minimalphone.launcher.ui.AppDrawerScreen
 import com.minimalphone.launcher.ui.FrictionHostScreen
 import com.minimalphone.launcher.ui.HomeScreen
+import com.minimalphone.launcher.ui.OnboardingScreen
+import com.minimalphone.launcher.ui.SettingsScreen
 import com.minimalphone.launcher.ui.TasksScreen
 import com.minimalphone.launcher.ui.WeatherScreen
 import kotlinx.coroutines.launch
@@ -104,26 +106,33 @@ class MainActivity : ComponentActivity() {
         networkMonitor = NetworkStatusMonitor(this)
         weatherRepository = WeatherRepository(prefsStore)
 
-        // Register screen lock receiver to display custom matching lock screen
-        val filter = IntentFilter(Intent.ACTION_SCREEN_OFF)
-        screenReceiver = ScreenStateReceiver()
-        registerReceiver(screenReceiver, filter)
-
         // Active pluggable friction intervention
-        activeFriction = BreathingIntervention(countdownSeconds = 5, defaultCost = 10)
+        activeFriction = BreathingIntervention(
+            countdownSeconds = prefsStore.frictionCountdownSeconds,
+            defaultCost = prefsStore.frictionCost
+        )
 
         // Register default home launcher role request
         roleRequestLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
             isDefaultHomeState = isDefaultHomeLauncher()
+            updateLockScreenReceiver()
         }
 
-        // Apply device and lockscreen wallpaper in background
-        Thread {
-            WallpaperHelper.applyDuneWallpaper(this)
-        }.start()
+        // If first launch is already done, apply wallpaper & grayscale
+        if (prefsStore.isFirstLaunchCompleted) {
+            Thread {
+                if (prefsStore.isPitchBlackWallpaper) {
+                    WallpaperHelper.applyPitchBlackWallpaper(this)
+                } else {
+                    WallpaperHelper.applyDuneWallpaper(this)
+                }
+            }.start()
 
-        // Enable system-wide hardware B/W monochrome mode for all apps
-        MonochromeModeHelper.enableMonochrome(this)
+            if (prefsStore.isMonochromeEnabled && isDefaultHomeLauncher()) {
+                MonochromeModeHelper.enableMonochrome(this)
+            }
+            updateLockScreenReceiver()
+        }
 
         setContent {
             MiniMalTheme {
@@ -134,14 +143,39 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        MonochromeModeHelper.enableMonochrome(this)
+        isDefaultHomeState = isDefaultHomeLauncher()
+        if (isDefaultHomeState) {
+            if (prefsStore.isMonochromeEnabled) {
+                MonochromeModeHelper.enableMonochrome(this)
+            }
+        } else {
+            // If user switched away from MiniMalPhone, safely disable hardware monochrome!
+            MonochromeModeHelper.disableMonochrome(this)
+        }
+        updateLockScreenReceiver()
         WindowCompat.getInsetsController(window, window.decorView)?.apply {
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             hide(WindowInsetsCompat.Type.statusBars())
         }
-        isDefaultHomeState = isDefaultHomeLauncher()
-        if (!isDefaultHomeState) {
+        if (!isDefaultHomeState && prefsStore.isFirstLaunchCompleted) {
             requestSetDefaultLauncher()
+        }
+    }
+
+    private fun updateLockScreenReceiver() {
+        if (prefsStore.isCustomLockScreenEnabled && isDefaultHomeLauncher()) {
+            if (screenReceiver == null) {
+                try {
+                    val filter = IntentFilter(Intent.ACTION_SCREEN_OFF)
+                    screenReceiver = ScreenStateReceiver()
+                    registerReceiver(screenReceiver, filter)
+                } catch (ignored: Exception) {}
+            }
+        } else {
+            screenReceiver?.let {
+                try { unregisterReceiver(it) } catch (e: Exception) {}
+                screenReceiver = null
+            }
         }
     }
 
@@ -207,6 +241,15 @@ class MainActivity : ComponentActivity() {
         var batteryPct by remember { mutableIntStateOf(-1) }
         val networkStatus by networkMonitor.status.collectAsState()
         var frictionTargetApp by remember { mutableStateOf<AppModel?>(null) }
+        var isOnboarding by remember { mutableStateOf(!prefsStore.isFirstLaunchCompleted) }
+        var isSettingsOpen by remember { mutableStateOf(false) }
+
+        val activeIntervention = remember(prefsStore.frictionCountdownSeconds, prefsStore.frictionCost) {
+            BreathingIntervention(
+                countdownSeconds = prefsStore.frictionCountdownSeconds,
+                defaultCost = prefsStore.frictionCost
+            )
+        }
 
         fun reloadData() {
             scope.launch {
@@ -247,9 +290,13 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Back button: return to Home (Page 2) or dismiss friction
-        BackHandler(enabled = frictionTargetApp != null || pagerState.currentPage != 2) {
-            if (frictionTargetApp != null) {
+        // Back button: return to Home (Page 2), dismiss settings, or dismiss friction
+        BackHandler(enabled = isSettingsOpen || frictionTargetApp != null || (!isOnboarding && pagerState.currentPage != 2)) {
+            if (isSettingsOpen) {
+                isSettingsOpen = false
+                reloadData()
+                updateLockScreenReceiver()
+            } else if (frictionTargetApp != null) {
                 frictionTargetApp = null
             } else if (pagerState.currentPage != 2) {
                 scope.launch { pagerState.animateScrollToPage(2) }
@@ -257,7 +304,9 @@ class MainActivity : ComponentActivity() {
         }
 
         fun handleAppClick(app: AppModel) {
-            MonochromeModeHelper.enableMonochrome(this@MainActivity)
+            if (prefsStore.isMonochromeEnabled && isDefaultHomeState) {
+                MonochromeModeHelper.enableMonochrome(this@MainActivity)
+            }
             if (app.isDistraction) {
                 frictionTargetApp = app
             } else {
@@ -265,18 +314,57 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        if (frictionTargetApp != null) {
+        if (isOnboarding) {
+            OnboardingScreen(
+                prefsStore = prefsStore,
+                apps = allApps,
+                isDefaultLauncher = isDefaultHomeState,
+                onRequestSetDefaultLauncher = { requestSetDefaultLauncher() },
+                onToggleDistraction = { app ->
+                    scope.launch {
+                        appRepository.toggleDistraction(app.packageName)
+                        reloadApps()
+                    }
+                },
+                onCompleteOnboarding = {
+                    isOnboarding = false
+                    reloadData()
+                    reloadApps()
+                    updateLockScreenReceiver()
+                    if (prefsStore.isMonochromeEnabled && isDefaultHomeState) {
+                        MonochromeModeHelper.enableMonochrome(this@MainActivity)
+                    }
+                }
+            )
+        } else if (isSettingsOpen) {
+            SettingsScreen(
+                prefsStore = prefsStore,
+                economyEngine = economyEngine,
+                apps = allApps,
+                onToggleDistractionApp = { app ->
+                    scope.launch {
+                        appRepository.toggleDistraction(app.packageName)
+                        reloadApps()
+                    }
+                },
+                onNavigateBack = {
+                    isSettingsOpen = false
+                    reloadData()
+                    updateLockScreenReceiver()
+                }
+            )
+        } else if (frictionTargetApp != null) {
             val target = frictionTargetApp!!
             FrictionHostScreen(
-                intervention = activeFriction,
+                intervention = activeIntervention,
                 appName = target.label,
-                creditCost = activeFriction.defaultCost,
+                creditCost = activeIntervention.defaultCost,
                 userCredits = focusCredits,
                 onProceed = {
                     val success = economyEngine.processEvent(
                         EconomyEvent.AppFrictionBypassed(
                             packageName = target.packageName,
-                            costAmount = activeFriction.defaultCost
+                            costAmount = activeIntervention.defaultCost
                         )
                     )
                     if (success) {
@@ -344,8 +432,11 @@ class MainActivity : ComponentActivity() {
                         batteryPct = batteryPct,
                         networkStatus = networkStatus,
                         isDefaultLauncher = isDefaultHomeState,
+                        is24Hour = prefsStore.is24HourFormat,
                         onLaunchEssential = { type ->
-                            MonochromeModeHelper.enableMonochrome(this@MainActivity)
+                            if (prefsStore.isMonochromeEnabled && isDefaultHomeState) {
+                                MonochromeModeHelper.enableMonochrome(this@MainActivity)
+                            }
                             appRepository.launchEssentialApp(type)
                         },
                         onToggleTask = { task ->
@@ -372,6 +463,9 @@ class MainActivity : ComponentActivity() {
                         },
                         onNavigateToDrawer = {
                             scope.launch { pagerState.animateScrollToPage(3) }
+                        },
+                        onOpenSettings = {
+                            isSettingsOpen = true
                         }
                     )
                     3 -> AppDrawerScreen(
@@ -394,6 +488,9 @@ class MainActivity : ComponentActivity() {
                                 appRepository.toggleHidden(app.packageName)
                                 reloadApps()
                             }
+                        },
+                        onOpenSettings = {
+                            isSettingsOpen = true
                         }
                     )
                 }

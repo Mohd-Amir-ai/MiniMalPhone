@@ -32,4 +32,67 @@ object MonochromeModeHelper {
             false
         }
     }
+
+    /**
+     * Disables Daltonizer color correction, restoring original 100% full vibrant colors.
+     */
+    fun disableMonochrome(context: Context): Boolean {
+        return try {
+            Settings.Secure.putInt(
+                context.contentResolver,
+                "accessibility_display_daltonizer_enabled",
+                0
+            )
+            Log.i(TAG, "Hardware Monochrome disabled, colors restored!")
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not disable monochrome mode: ${e.message}")
+            false
+        }
+    }
+
+    /**
+     * Checks if Daltonizer monochromacy is currently active on the device.
+     */
+    fun isMonochromeActive(context: Context): Boolean {
+        return try {
+            val enabled = Settings.Secure.getInt(
+                context.contentResolver,
+                "accessibility_display_daltonizer_enabled",
+                0
+            ) == 1
+            val mode = Settings.Secure.getInt(
+                context.contentResolver,
+                "accessibility_display_daltonizer",
+                -1
+            )
+            enabled && mode == 0
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Diagnostic: Checks whether WRITE_SECURE_SETTINGS has been granted to MiniMalPhone.
+     */
+    fun isPermissionGranted(context: Context): Boolean {
+        return try {
+            // Read current value and attempt a no-op write to test write permission
+            val current = Settings.Secure.getInt(
+                context.contentResolver,
+                "accessibility_display_daltonizer_enabled",
+                0
+            )
+            Settings.Secure.putInt(
+                context.contentResolver,
+                "accessibility_display_daltonizer_enabled",
+                current
+            )
+            true
+        } catch (e: SecurityException) {
+            false
+        } catch (e: Exception) {
+            false
+        }
+    }
 }

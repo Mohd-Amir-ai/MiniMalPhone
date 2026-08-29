@@ -90,4 +90,31 @@ object WallpaperHelper {
             false
         }
     }
+
+    /**
+     * Applies a pure OLED pitch-black (#000000) wallpaper to Home & Lock screen.
+     */
+    fun applyPitchBlackWallpaper(context: Context): Boolean {
+        return try {
+            val wm = WallpaperManager.getInstance(context)
+            val metrics = context.resources.displayMetrics
+            val width = metrics.widthPixels.coerceAtLeast(1080)
+            val height = metrics.heightPixels.coerceAtLeast(1920)
+
+            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            canvas.drawColor(0xFF000000.toInt())
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                wm.setBitmap(bitmap, null, true, WallpaperManager.FLAG_SYSTEM or WallpaperManager.FLAG_LOCK)
+            } else {
+                wm.setBitmap(bitmap)
+            }
+            Log.i(TAG, "Successfully applied Pitch Black wallpaper!")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to apply pitch black wallpaper: ${e.message}", e)
+            false
+        }
+    }
 }

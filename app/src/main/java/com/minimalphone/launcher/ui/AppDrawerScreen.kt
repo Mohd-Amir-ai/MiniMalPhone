@@ -2,6 +2,7 @@ package com.minimalphone.launcher.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -45,13 +47,22 @@ fun AppDrawerScreen(
     onToggleFavorite: (AppModel) -> Unit,
     onToggleDistraction: (AppModel) -> Unit,
     onToggleHide: (AppModel) -> Unit,
+    onOpenSettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var searchQuery by remember { mutableStateOf("") }
 
+    val settingsVirtualApp = remember {
+        AppModel(
+            label = "MiniMalPhone Settings",
+            packageName = "com.minimalphone.launcher.settings"
+        )
+    }
+
     val filteredApps = remember(searchQuery, apps) {
-        apps.filter { !it.isHidden }
-            .filter { it.label.contains(searchQuery, ignoreCase = true) }
+        val list = apps.filter { !it.isHidden }.toMutableList()
+        list.add(settingsVirtualApp)
+        list.filter { it.label.contains(searchQuery, ignoreCase = true) }
             .sortedBy { it.label.lowercase() }
     }
 
@@ -63,37 +74,60 @@ fun AppDrawerScreen(
             .navigationBarsPadding()
             .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            placeholder = { Text("Type to search…", color = MidGray) },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search",
-                    tint = MidGray
-                )
-            },
-            trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { searchQuery = "" }) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Clear",
-                            tint = LightGray
-                        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = { Text("Type to search…", color = MidGray) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search",
+                        tint = MidGray
+                    )
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear",
+                                tint = LightGray
+                            )
+                        }
                     }
-                }
-            },
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = ChalkWhite,
-                unfocusedTextColor = ChalkWhite,
-                focusedBorderColor = PureWhite,
-                unfocusedBorderColor = AccentBorder
-            ),
-            modifier = Modifier.fillMaxWidth()
-        )
+                },
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = ChalkWhite,
+                    unfocusedTextColor = ChalkWhite,
+                    focusedBorderColor = PureWhite,
+                    unfocusedBorderColor = AccentBorder
+                ),
+                modifier = Modifier.weight(1f)
+            )
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            IconButton(
+                onClick = onOpenSettings,
+                modifier = Modifier
+                    .size(54.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(DarkCard)
+                    .border(1.dp, AccentBorder, RoundedCornerShape(8.dp))
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "MiniMalPhone Settings",
+                    tint = ChalkWhite,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -113,7 +147,13 @@ fun AppDrawerScreen(
             items(filteredApps, key = { it.packageName }) { app ->
                 AppListItem(
                     app = app,
-                    onLaunch = { onLaunchApp(app) },
+                    onLaunch = {
+                        if (app.packageName == "com.minimalphone.launcher.settings") {
+                            onOpenSettings()
+                        } else {
+                            onLaunchApp(app)
+                        }
+                    },
                     onToggleFavorite = { onToggleFavorite(app) },
                     onToggleDistraction = { onToggleDistraction(app) },
                     onToggleHide = { onToggleHide(app) }
@@ -133,6 +173,7 @@ private fun AppListItem(
     onToggleHide: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    val isSettings = app.packageName == "com.minimalphone.launcher.settings"
 
     Box(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -141,7 +182,7 @@ private fun AppListItem(
                 .clip(RoundedCornerShape(6.dp))
                 .combinedClickable(
                     onClick = onLaunch,
-                    onLongClick = { showMenu = true }
+                    onLongClick = { if (!isSettings) showMenu = true }
                 )
                 .padding(horizontal = 12.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,

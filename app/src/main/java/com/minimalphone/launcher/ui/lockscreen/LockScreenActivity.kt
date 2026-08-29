@@ -86,12 +86,17 @@ class LockScreenActivity : ComponentActivity() {
         }
 
         val prefsStore = LocalPreferencesStore(this)
+        if (!prefsStore.isCustomLockScreenEnabled) {
+            finish()
+            return
+        }
         taskDataSource = LocalTaskDataSourceImpl(prefsStore)
         networkMonitor = NetworkStatusMonitor(this)
 
         setContent {
             MiniMalTheme {
                 LockScreenContent(
+                    prefsStore = prefsStore,
                     networkMonitor = networkMonitor,
                     onUnlockRequested = { unlockDevice() }
                 )
@@ -109,6 +114,7 @@ class LockScreenActivity : ComponentActivity() {
 
     @Composable
     private fun LockScreenContent(
+        prefsStore: LocalPreferencesStore,
         networkMonitor: NetworkStatusMonitor,
         onUnlockRequested: () -> Unit
     ) {
@@ -124,7 +130,8 @@ class LockScreenActivity : ComponentActivity() {
             tasks.clear()
             tasks.addAll(taskDataSource.getTasks())
 
-            val hourFormat = SimpleDateFormat("HH", Locale.getDefault())
+            val is24Hour = prefsStore.is24HourFormat
+            val hourFormat = SimpleDateFormat(if (is24Hour) "HH" else "hh", Locale.getDefault())
             val minuteFormat = SimpleDateFormat("mm", Locale.getDefault())
             val dateFormat = SimpleDateFormat("EEE d MMMM", Locale.getDefault())
             while (true) {
@@ -193,39 +200,41 @@ class LockScreenActivity : ComponentActivity() {
                     .navigationBarsPadding()
                     .padding(horizontal = 26.dp, vertical = 14.dp)
             ) {
-                // Top Right: Real working Wi-Fi, Cellular, Battery
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (networkState.isWifiConnected) {
-                        Icon(
-                            imageVector = Icons.Default.Wifi,
-                            contentDescription = "Wi-Fi Connected",
-                            tint = topPrimaryTextColor,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
+                // Top Right: Real working Wi-Fi, Cellular, Battery (controlled by setting)
+                if (prefsStore.showLockScreenStatus) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (networkState.isWifiConnected) {
+                            Icon(
+                                imageVector = Icons.Default.Wifi,
+                                contentDescription = "Wi-Fi Connected",
+                                tint = topPrimaryTextColor,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
 
-                    if (networkState.isCellularConnected) {
-                        Icon(
-                            imageVector = Icons.Default.SignalCellularAlt,
-                            contentDescription = "Cellular Connected",
-                            tint = topPrimaryTextColor,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
+                        if (networkState.isCellularConnected) {
+                            Icon(
+                                imageVector = Icons.Default.SignalCellularAlt,
+                                contentDescription = "Cellular Connected",
+                                tint = topPrimaryTextColor,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
 
-                    if (batteryPct >= 0) {
-                        Text(
-                            text = "$batteryPct%",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Medium,
-                            color = topSecondaryTextColor
-                        )
+                        if (batteryPct >= 0) {
+                            Text(
+                                text = "$batteryPct%",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Medium,
+                                color = topSecondaryTextColor
+                            )
+                        }
                     }
                 }
 
@@ -260,8 +269,8 @@ class LockScreenActivity : ComponentActivity() {
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Upcoming Schedules (Next 30 Minutes)
-                if (next30MinTasks.isNotEmpty()) {
+                // Upcoming Schedules (Next 30 Minutes - controlled by setting)
+                if (prefsStore.showLockScreenEvents && next30MinTasks.isNotEmpty()) {
                     Text(
                         text = "Upcoming schedules (next 30m)",
                         style = MaterialTheme.typography.labelMedium,

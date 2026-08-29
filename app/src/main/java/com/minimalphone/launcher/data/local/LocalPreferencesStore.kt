@@ -13,6 +13,15 @@ class LocalPreferencesStore(context: Context) {
         private const val KEY_HIDDEN = "hidden_apps"
         private const val KEY_DISTRACTIONS = "distraction_apps"
         private const val KEY_TASK_IDS = "task_id_set"
+        private const val KEY_FIRST_LAUNCH_DONE = "first_launch_done"
+        private const val KEY_MONOCHROME_ENABLED = "monochrome_enabled"
+        private const val KEY_CUSTOM_LOCKSCREEN_ENABLED = "custom_lockscreen_enabled"
+        private const val KEY_FRICTION_SECONDS = "friction_countdown_seconds"
+        private const val KEY_FRICTION_COST = "friction_cost"
+        private const val KEY_IS_24_HOUR = "is_24_hour_format"
+        private const val KEY_SHOW_LOCK_EVENTS = "show_lock_events"
+        private const val KEY_SHOW_LOCK_STATUS = "show_lock_status"
+        private const val KEY_PITCH_BLACK_WALLPAPER = "pitch_black_wallpaper"
         private const val PREFIX_TASK_TITLE = "task_t_"
         private const val PREFIX_TASK_DONE = "task_d_"
         private const val PREFIX_TASK_DIFF = "task_diff_"
@@ -116,4 +125,41 @@ class LocalPreferencesStore(context: Context) {
 
     fun getWeatherLon(): Double = prefs.getString("weather_lon", "79.0882")?.toDoubleOrNull() ?: 79.0882
     fun setWeatherLon(lon: Double) = prefs.edit().putString("weather_lon", lon.toString()).apply()
+
+    // Application & System Settings
+    var isFirstLaunchCompleted: Boolean
+        get() = prefs.getBoolean(KEY_FIRST_LAUNCH_DONE, false)
+        set(value) = prefs.edit().putBoolean(KEY_FIRST_LAUNCH_DONE, value).apply()
+
+    var isMonochromeEnabled: Boolean
+        get() = prefs.getBoolean(KEY_MONOCHROME_ENABLED, true)
+        set(value) = prefs.edit().putBoolean(KEY_MONOCHROME_ENABLED, value).apply()
+
+    var isCustomLockScreenEnabled: Boolean
+        get() = prefs.getBoolean(KEY_CUSTOM_LOCKSCREEN_ENABLED, true)
+        set(value) = prefs.edit().putBoolean(KEY_CUSTOM_LOCKSCREEN_ENABLED, value).apply()
+
+    var frictionCountdownSeconds: Int
+        get() = prefs.getInt(KEY_FRICTION_SECONDS, 5)
+        set(value) = prefs.edit().putInt(KEY_FRICTION_SECONDS, value).apply()
+
+    var frictionCost: Int
+        get() = prefs.getInt(KEY_FRICTION_COST, 10)
+        set(value) = prefs.edit().putInt(KEY_FRICTION_COST, value).apply()
+
+    var is24HourFormat: Boolean
+        get() = prefs.getBoolean(KEY_IS_24_HOUR, true)
+        set(value) = prefs.edit().putBoolean(KEY_IS_24_HOUR, value).apply()
+
+    var showLockScreenEvents: Boolean
+        get() = prefs.getBoolean(KEY_SHOW_LOCK_EVENTS, true)
+        set(value) = prefs.edit().putBoolean(KEY_SHOW_LOCK_EVENTS, value).apply()
+
+    var showLockScreenStatus: Boolean
+        get() = prefs.getBoolean(KEY_SHOW_LOCK_STATUS, true)
+        set(value) = prefs.edit().putBoolean(KEY_SHOW_LOCK_STATUS, value).apply()
+
+    var isPitchBlackWallpaper: Boolean
+        get() = prefs.getBoolean(KEY_PITCH_BLACK_WALLPAPER, false)
+        set(value) = prefs.edit().putBoolean(KEY_PITCH_BLACK_WALLPAPER, value).apply()
 }
