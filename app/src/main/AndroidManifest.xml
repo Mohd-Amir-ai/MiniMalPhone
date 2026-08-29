@@ -6,6 +6,9 @@
     
     <!-- Permission to set system and lockscreen wallpaper -->
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
+    
+    <!-- Permission for physical motor vibration haptic feedback -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:allowBackup="true"
