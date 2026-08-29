@@ -16,6 +16,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Message
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,18 +33,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.minimalphone.launcher.domain.apps.EssentialAppType
 import com.minimalphone.launcher.domain.productivity.EventItem
-import com.minimalphone.launcher.theme.PaperAccentDot
-import com.minimalphone.launcher.theme.PaperChalkWhite
-import com.minimalphone.launcher.theme.PaperDarkBackground
-import com.minimalphone.launcher.theme.PaperDarkCard
-import com.minimalphone.launcher.theme.PaperHairlineBorder
-import com.minimalphone.launcher.theme.PaperMutedInk
-import com.minimalphone.launcher.theme.PaperPencilGray
+import com.minimalphone.launcher.theme.DarkCard
+import com.minimalphone.launcher.theme.DarkGray600
+import com.minimalphone.launcher.theme.DarkGray700
+import com.minimalphone.launcher.theme.LightGray
+import com.minimalphone.launcher.theme.MidGray
+import com.minimalphone.launcher.theme.PureBlack
+import com.minimalphone.launcher.theme.PureWhite
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -55,16 +62,19 @@ fun HomeScreen(
     onNavigateToDrawer: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var currentTime by remember { mutableStateOf("") }
-    var currentDate by remember { mutableStateOf("") }
+    var hourString by remember { mutableStateOf("") }
+    var minuteString by remember { mutableStateOf("") }
+    var dateString by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        val timeFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
-        val dateFormat = SimpleDateFormat("EEEE, MMMM d", Locale.getDefault())
+        val hourFormat = SimpleDateFormat("HH", Locale.getDefault())
+        val minuteFormat = SimpleDateFormat("mm", Locale.getDefault())
+        val dateFormat = SimpleDateFormat("EEE d MMMM", Locale.getDefault())
         while (true) {
             val now = Date()
-            currentTime = timeFormat.format(now)
-            currentDate = dateFormat.format(now)
+            hourString = hourFormat.format(now)
+            minuteString = minuteFormat.format(now)
+            dateString = dateFormat.format(now)
             delay(1000L)
         }
     }
@@ -72,90 +82,96 @@ fun HomeScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(PaperDarkBackground)
-            .padding(horizontal = 28.dp, vertical = 34.dp),
+            .background(PureBlack)
+            .padding(horizontal = 26.dp, vertical = 30.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // TOP SECTION: Aligned to the Top-Right (Time, Day/Date, Reward Points)
-        Column(
+        // TOP HEADER: Focus points & subtle battery
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.End
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End
+            // Reward Points Pill
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(DarkCard)
+                    .border(1.dp, DarkGray600, RoundedCornerShape(6.dp))
+                    .clickable { onNavigateToTasks() }
+                    .padding(horizontal = 10.dp, vertical = 4.dp)
             ) {
-                if (batteryPct >= 0) {
-                    Text(
-                        text = "$batteryPct%",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = PaperMutedInk,
-                        modifier = Modifier.padding(end = 10.dp)
-                    )
-                }
-
-                // Focus Reward Points Pill
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(PaperDarkCard)
-                        .border(1.dp, PaperHairlineBorder, RoundedCornerShape(4.dp))
-                        .clickable { onNavigateToTasks() }
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
-                ) {
-                    Text(
-                        text = "$focusCredits pts",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Medium,
-                        color = PaperChalkWhite
-                    )
-                }
+                Text(
+                    text = "$focusCredits pts",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = PureWhite
+                )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Large Minimal Time
-            Text(
-                text = currentTime.ifEmpty { "--:--" },
-                style = MaterialTheme.typography.displayLarge,
-                fontWeight = FontWeight.Light,
-                letterSpacing = (-1).sp,
-                color = PaperChalkWhite
-            )
-
-            // Day and Date
-            Text(
-                text = currentDate.uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                letterSpacing = 2.sp,
-                color = PaperPencilGray
-            )
+            if (batteryPct >= 0) {
+                Text(
+                    text = "$batteryPct%",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MidGray
+                )
+            }
         }
 
-        // MIDDLE SECTION: Upcoming Events (Paper Display Card)
+        // UPPER-MIDDLE SECTION: Left-Aligned Time Widget + Immediately followed by Upcoming Schedules
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 12.dp)
+                .padding(top = 16.dp)
         ) {
+            // Left-aligned Stacked Minimalist Clock (inspired by photo)
+            Column(horizontalAlignment = Alignment.Start) {
+                Text(
+                    text = hourString.ifEmpty { "17" },
+                    fontSize = 62.sp,
+                    lineHeight = 62.sp,
+                    fontWeight = FontWeight.Light,
+                    letterSpacing = (-1).sp,
+                    color = PureWhite
+                )
+                Text(
+                    text = minuteString.ifEmpty { "06" },
+                    fontSize = 62.sp,
+                    lineHeight = 62.sp,
+                    fontWeight = FontWeight.Light,
+                    letterSpacing = (-1).sp,
+                    color = PureWhite
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = dateString.ifEmpty { "Thu 6 March" },
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Normal,
+                    color = LightGray
+                )
+            }
+
+            Spacer(modifier = Modifier.height(30.dp))
+
+            // Immediately After the Time Widget: Upcoming Schedules
             Text(
-                text = "UPCOMING SCHEDULE",
+                text = "UPCOMING SCHEDULES",
                 style = MaterialTheme.typography.labelSmall,
-                letterSpacing = 2.5.sp,
-                color = PaperPencilGray
+                letterSpacing = 2.sp,
+                color = MidGray
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(PaperDarkCard)
-                    .border(1.dp, PaperHairlineBorder, RoundedCornerShape(6.dp))
-                    .padding(horizontal = 18.dp, vertical = 18.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(DarkCard)
+                    .border(1.dp, DarkGray600, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 18.dp, vertical = 16.dp)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     events.forEach { event ->
                         Row(
                             modifier = Modifier
@@ -168,28 +184,27 @@ fun HomeScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.weight(1f)
                             ) {
-                                // Tactile paper dot / indicator
                                 Box(
                                     modifier = Modifier
-                                        .size(7.dp)
+                                        .size(8.dp)
                                         .clip(CircleShape)
-                                        .background(if (event.isCompleted) PaperMutedInk else PaperAccentDot)
+                                        .background(if (event.isCompleted) MidGray else PureWhite)
                                 )
 
-                                Spacer(modifier = Modifier.width(14.dp))
+                                Spacer(modifier = Modifier.width(12.dp))
 
                                 Text(
                                     text = event.title,
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.Normal,
-                                    color = if (event.isCompleted) PaperMutedInk else PaperChalkWhite
+                                    color = if (event.isCompleted) MidGray else PureWhite
                                 )
                             }
 
                             Text(
                                 text = event.timeFormatted,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = if (event.isCompleted) PaperMutedInk else PaperPencilGray
+                                color = if (event.isCompleted) MidGray else LightGray
                             )
                         }
                     }
@@ -197,80 +212,56 @@ fun HomeScreen(
             }
         }
 
-        // BOTTOM SECTION: 4 Essential Apps (Phone, Google Search, Messaging, Camera)
+        // BOTTOM SECTION: Circular Minimal App Icons + Navigation
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "ESSENTIALS",
-                style = MaterialTheme.typography.labelSmall,
-                letterSpacing = 2.5.sp,
-                color = PaperPencilGray
-            )
-
+            // Row of 4 Circular Minimalist Icon Shortcuts (Phone, Search, Messages, Camera)
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 1. Phone
-                Text(
-                    text = "phone",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Light,
-                    color = PaperChalkWhite,
-                    modifier = Modifier
-                        .clickable { onLaunchEssential(EssentialAppType.PHONE) }
-                        .padding(vertical = 8.dp)
+                MinimalCircularIconButton(
+                    icon = Icons.Default.Phone,
+                    contentDescription = "Phone",
+                    onClick = { onLaunchEssential(EssentialAppType.PHONE) }
                 )
 
-                // 2. Google / Search
-                Text(
-                    text = "google",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Light,
-                    color = PaperChalkWhite,
-                    modifier = Modifier
-                        .clickable { onLaunchEssential(EssentialAppType.SEARCH) }
-                        .padding(vertical = 8.dp)
+                MinimalCircularIconButton(
+                    icon = Icons.Default.Search,
+                    contentDescription = "Google Search",
+                    onClick = { onLaunchEssential(EssentialAppType.SEARCH) }
                 )
 
-                // 3. Messages
-                Text(
-                    text = "messages",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Light,
-                    color = PaperChalkWhite,
-                    modifier = Modifier
-                        .clickable { onLaunchEssential(EssentialAppType.MESSAGES) }
-                        .padding(vertical = 8.dp)
+                MinimalCircularIconButton(
+                    icon = Icons.Default.Message,
+                    contentDescription = "Messages",
+                    onClick = { onLaunchEssential(EssentialAppType.MESSAGES) }
                 )
 
-                // 4. Camera
-                Text(
-                    text = "camera",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Light,
-                    color = PaperChalkWhite,
-                    modifier = Modifier
-                        .clickable { onLaunchEssential(EssentialAppType.CAMERA) }
-                        .padding(vertical = 8.dp)
+                MinimalCircularIconButton(
+                    icon = Icons.Default.CameraAlt,
+                    contentDescription = "Camera",
+                    onClick = { onLaunchEssential(EssentialAppType.CAMERA) }
                 )
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
-            // Minimal Navigation Footnotes
+            // Navigation footers
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "← Daily Tasks",
+                    text = "← Tasks",
                     style = MaterialTheme.typography.labelSmall,
-                    color = PaperMutedInk,
+                    color = MidGray,
                     modifier = Modifier
                         .clickable { onNavigateToTasks() }
                         .padding(vertical = 4.dp)
@@ -279,12 +270,39 @@ fun HomeScreen(
                 Text(
                     text = "All Apps →",
                     style = MaterialTheme.typography.labelSmall,
-                    color = PaperMutedInk,
+                    color = MidGray,
                     modifier = Modifier
                         .clickable { onNavigateToDrawer() }
                         .padding(vertical = 4.dp)
                 )
             }
         }
+    }
+}
+
+/**
+ * Minimal Circular Icon Button matching the reference setup in the uploaded photo.
+ */
+@Composable
+private fun MinimalCircularIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(54.dp)
+            .clip(CircleShape)
+            .background(DarkGray700)
+            .border(1.dp, DarkGray600, CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = PureWhite,
+            modifier = Modifier.size(24.dp)
+        )
     }
 }
