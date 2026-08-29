@@ -11,6 +11,10 @@
     <!-- Permission for physical motor vibration haptic feedback -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- Permissions for real working Wi-Fi & Cellular network status -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
     <!-- Permission for system-wide B/W monochrome hardware display mode -->
     <uses-permission
         android:name="android.permission.WRITE_SECURE_SETTINGS"
@@ -46,6 +50,16 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+        <!-- Minimal Lock Screen Activity: matching widgets, no bottom bar, show when locked -->
+        <activity
+            android:name=".ui.lockscreen.LockScreenActivity"
+            android:exported="false"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.MiniMalPhone" />
     </application>
 
 </manifest>

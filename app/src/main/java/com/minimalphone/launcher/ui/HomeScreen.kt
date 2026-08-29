@@ -11,6 +11,8 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SignalCellularAlt
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,6 +30,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.minimalphone.launcher.core.system.RealNetworkStatus
 import com.minimalphone.launcher.domain.apps.EssentialAppType
 import com.minimalphone.launcher.domain.productivity.TaskItem
 import com.minimalphone.launcher.ui.components.MonochromeWallpaper
@@ -42,6 +45,7 @@ fun HomeScreen(
     tasks: List<TaskItem>,
     focusCredits: Int,
     batteryPct: Int,
+    networkStatus: RealNetworkStatus,
     isDefaultLauncher: Boolean,
     onLaunchEssential: (EssentialAppType) -> Unit,
     onToggleTask: (TaskItem) -> Unit,
@@ -93,7 +97,7 @@ fun HomeScreen(
     val next30MinTasks = tasks.filter { !it.isCompleted && isWithinNext30Minutes(it.scheduledTime) }
 
     Box(modifier = modifier.fillMaxSize()) {
-        // Procedural Layered Monochrome Wallpaper
+        // Procedural Layered Monochrome Wallpaper fills 100% of the screen
         MonochromeWallpaper()
 
         // Content Layout
@@ -104,12 +108,32 @@ fun HomeScreen(
                 .navigationBarsPadding()
                 .padding(horizontal = 26.dp, vertical = 14.dp)
         ) {
-            // 1. TOP HEADER: Clean minimal battery (Points box & wallpaper box removed per request)
+            // 1. TOP HEADER: Real working Wi-Fi, Cellular, Battery
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                if (networkStatus.isWifiConnected) {
+                    Icon(
+                        imageVector = Icons.Default.Wifi,
+                        contentDescription = "Wi-Fi Connected",
+                        tint = topPrimaryTextColor,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+
+                if (networkStatus.isCellularConnected) {
+                    Icon(
+                        imageVector = Icons.Default.SignalCellularAlt,
+                        contentDescription = "Cellular Connected",
+                        tint = topPrimaryTextColor,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+
                 if (batteryPct >= 0) {
                     Text(
                         text = "$batteryPct%",
@@ -242,7 +266,7 @@ fun HomeScreen(
             // Pushes everything down so top section stays at top and icons at bottom
             Spacer(modifier = Modifier.weight(1f))
 
-            // 4. BOTTOM SECTION: 4 Circular Minimal Icon Buttons
+            // 4. BOTTOM SECTION: 4 Circular Minimal Icon Buttons (Zero bottom labels)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

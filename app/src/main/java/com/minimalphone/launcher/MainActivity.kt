@@ -31,10 +31,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import androidx.compose.runtime.collectAsState
 import com.minimalphone.launcher.core.crash.CrashReporter
 import com.minimalphone.launcher.core.crash.NoOpCrashReporter
 import com.minimalphone.launcher.core.system.MonochromeModeHelper
+import com.minimalphone.launcher.core.system.NetworkStatusMonitor
+import com.minimalphone.launcher.core.system.ScreenStateReceiver
 import com.minimalphone.launcher.core.wallpaper.WallpaperHelper
 import com.minimalphone.launcher.data.apps.AppRepositoryImpl
 import com.minimalphone.launcher.data.economy.EconomyEngineImpl
@@ -68,18 +72,20 @@ class MainActivity : ComponentActivity() {
     private lateinit var roleRequestLauncher: ActivityResultLauncher<Intent>
 
     private var isDefaultHomeState by mutableStateOf(false)
+    private lateinit var networkMonitor: NetworkStatusMonitor
+    private var screenReceiver: ScreenStateReceiver? = null
 
     @OptIn(ExperimentalFoundationApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Edge-to-Edge: Transparent status & nav bar, dark icons for light sky wallpaper
+        // Immersive Edge-to-Edge: Hide black status bar strip completely, swipe down to reveal
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.statusBarColor = android.graphics.Color.TRANSPARENT
         window.navigationBarColor = android.graphics.Color.TRANSPARENT
         WindowCompat.getInsetsController(window, window.decorView)?.apply {
-            isAppearanceLightStatusBars = true // Dark status icons (battery, wifi, time)
-            isAppearanceLightNavigationBars = false // Light gesture bar for dark base
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            hide(WindowInsetsCompat.Type.statusBars())
         }
 
         // Initialize Core Crash Reporter
@@ -91,6 +97,12 @@ class MainActivity : ComponentActivity() {
         taskDataSource = LocalTaskDataSourceImpl(prefsStore)
         economyEngine = EconomyEngineImpl(prefsStore, crashReporter)
         appRepository = AppRepositoryImpl(this, prefsStore, crashReporter)
+        networkMonitor = NetworkStatusMonitor(this)
+
+        // Register screen lock receiver to display custom matching lock screen
+        val filter = IntentFilter(Intent.ACTION_SCREEN_OFF)
+        screenReceiver = ScreenStateReceiver()
+        registerReceiver(screenReceiver, filter)
 
         // Active pluggable friction intervention
         activeFriction = BreathingIntervention(countdownSeconds = 5, defaultCost = 10)
@@ -118,9 +130,20 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         MonochromeModeHelper.enableMonochrome(this)
+        WindowCompat.getInsetsController(window, window.decorView)?.apply {
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            hide(WindowInsetsCompat.Type.statusBars())
+        }
         isDefaultHomeState = isDefaultHomeLauncher()
         if (!isDefaultHomeState) {
             requestSetDefaultLauncher()
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        screenReceiver?.let {
+            try { unregisterReceiver(it) } catch (e: Exception) {}
         }
     }
 
@@ -177,6 +200,7 @@ class MainActivity : ComponentActivity() {
 
         var focusCredits by remember { mutableIntStateOf(economyEngine.getCurrentBalance()) }
         var batteryPct by remember { mutableIntStateOf(-1) }
+        val networkStatus by networkMonitor.status.collectAsState()
         var frictionTargetApp by remember { mutableStateOf<AppModel?>(null) }
 
         fun reloadData() {
@@ -307,6 +331,7 @@ class MainActivity : ComponentActivity() {
                         tasks = tasks,
                         focusCredits = focusCredits,
                         batteryPct = batteryPct,
+                        networkStatus = networkStatus,
                         isDefaultLauncher = isDefaultHomeState,
                         onLaunchEssential = { type ->
                             MonochromeModeHelper.enableMonochrome(this@MainActivity)
