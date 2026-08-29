@@ -103,4 +103,17 @@ class LocalPreferencesStore(context: Context) {
     fun getTaskTime(id: Long): String = prefs.getString("$PREFIX_TASK_TIME$id", "12:00 PM") ?: "12:00 PM"
     fun getTaskDate(id: Long): String = prefs.getString("$PREFIX_TASK_DATE$id", "Today") ?: "Today"
     fun getTaskOrder(id: Long): Int = prefs.getInt("$PREFIX_TASK_ORDER$id", 0)
+
+    // Weather caching & Location preferences
+    fun getCachedWeatherJson(): String? = prefs.getString("weather_cached_json", null)
+    fun setCachedWeatherJson(json: String) = prefs.edit().putString("weather_cached_json", json).apply()
+
+    fun getWeatherCity(): String = prefs.getString("weather_city", "Nagpur") ?: "Nagpur"
+    fun setWeatherCity(city: String) = prefs.edit().putString("weather_city", city).apply()
+
+    fun getWeatherLat(): Double = prefs.getString("weather_lat", "21.1458")?.toDoubleOrNull() ?: 21.1458
+    fun setWeatherLat(lat: Double) = prefs.edit().putString("weather_lat", lat.toString()).apply()
+
+    fun getWeatherLon(): Double = prefs.getString("weather_lon", "79.0882")?.toDoubleOrNull() ?: 79.0882
+    fun setWeatherLon(lon: Double) = prefs.edit().putString("weather_lon", lon.toString()).apply()
 }

@@ -44,6 +44,7 @@ import com.minimalphone.launcher.data.apps.AppRepositoryImpl
 import com.minimalphone.launcher.data.economy.EconomyEngineImpl
 import com.minimalphone.launcher.data.local.LocalPreferencesStore
 import com.minimalphone.launcher.data.local.LocalTaskDataSourceImpl
+import com.minimalphone.launcher.data.weather.WeatherRepository
 import com.minimalphone.launcher.domain.apps.AppModel
 import com.minimalphone.launcher.domain.apps.AppRepository
 import com.minimalphone.launcher.domain.apps.EssentialAppType
@@ -58,6 +59,7 @@ import com.minimalphone.launcher.ui.AppDrawerScreen
 import com.minimalphone.launcher.ui.FrictionHostScreen
 import com.minimalphone.launcher.ui.HomeScreen
 import com.minimalphone.launcher.ui.TasksScreen
+import com.minimalphone.launcher.ui.WeatherScreen
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -73,6 +75,7 @@ class MainActivity : ComponentActivity() {
 
     private var isDefaultHomeState by mutableStateOf(false)
     private lateinit var networkMonitor: NetworkStatusMonitor
+    private lateinit var weatherRepository: WeatherRepository
     private var screenReceiver: ScreenStateReceiver? = null
 
     @OptIn(ExperimentalFoundationApi::class)
@@ -98,6 +101,7 @@ class MainActivity : ComponentActivity() {
         economyEngine = EconomyEngineImpl(prefsStore, crashReporter)
         appRepository = AppRepositoryImpl(this, prefsStore, crashReporter)
         networkMonitor = NetworkStatusMonitor(this)
+        weatherRepository = WeatherRepository(prefsStore)
 
         // Register screen lock receiver to display custom matching lock screen
         val filter = IntentFilter(Intent.ACTION_SCREEN_OFF)
@@ -192,8 +196,8 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun MainContent() {
         val scope = rememberCoroutineScope()
-        // Page 0: Tasks, Page 1: Home (default), Page 2: App Drawer
-        val pagerState = rememberPagerState(initialPage = 1, pageCount = { 3 })
+        // Page 0: Weather, Page 1: Tasks, Page 2: Home (default), Page 3: App Drawer
+        val pagerState = rememberPagerState(initialPage = 2, pageCount = { 4 })
 
         val allApps = remember { mutableStateListOf<AppModel>() }
         val tasks = remember { mutableStateListOf<TaskItem>() }
@@ -242,12 +246,12 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Back button: return to Home or dismiss friction
-        BackHandler(enabled = frictionTargetApp != null || pagerState.currentPage != 1) {
+        // Back button: return to Home (Page 2) or dismiss friction
+        BackHandler(enabled = frictionTargetApp != null || pagerState.currentPage != 2) {
             if (frictionTargetApp != null) {
                 frictionTargetApp = null
-            } else if (pagerState.currentPage != 1) {
-                scope.launch { pagerState.animateScrollToPage(1) }
+            } else if (pagerState.currentPage != 2) {
+                scope.launch { pagerState.animateScrollToPage(2) }
             }
         }
 
@@ -292,7 +296,13 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxSize()
             ) { page ->
                 when (page) {
-                    0 -> TasksScreen(
+                    0 -> WeatherScreen(
+                        weatherRepository = weatherRepository,
+                        onNavigateBack = {
+                            scope.launch { pagerState.animateScrollToPage(1) }
+                        }
+                    )
+                    1 -> TasksScreen(
                         tasks = tasks,
                         focusCredits = focusCredits,
                         onToggleTask = { task ->
@@ -327,7 +337,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     )
-                    1 -> HomeScreen(
+                    2 -> HomeScreen(
                         tasks = tasks,
                         focusCredits = focusCredits,
                         batteryPct = batteryPct,
@@ -357,13 +367,13 @@ class MainActivity : ComponentActivity() {
                             triggerWallpaperApply()
                         },
                         onNavigateToTasks = {
-                            scope.launch { pagerState.animateScrollToPage(0) }
+                            scope.launch { pagerState.animateScrollToPage(1) }
                         },
                         onNavigateToDrawer = {
-                            scope.launch { pagerState.animateScrollToPage(2) }
+                            scope.launch { pagerState.animateScrollToPage(3) }
                         }
                     )
-                    2 -> AppDrawerScreen(
+                    3 -> AppDrawerScreen(
                         apps = allApps,
                         onLaunchApp = { handleAppClick(it) },
                         onToggleFavorite = { app ->
