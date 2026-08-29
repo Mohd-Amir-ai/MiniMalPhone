@@ -14,3 +14,4 @@ local.properties
 # Local development tools and builds cache
 /tools
 /builds
+__pycache__/

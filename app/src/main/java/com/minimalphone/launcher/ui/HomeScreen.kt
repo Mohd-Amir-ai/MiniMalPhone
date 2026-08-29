@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -51,8 +52,11 @@ fun HomeScreen(
     events: List<EventItem>,
     focusCredits: Int,
     batteryPct: Int,
+    isDefaultLauncher: Boolean,
     onLaunchEssential: (EssentialAppType) -> Unit,
     onToggleEvent: (EventItem) -> Unit,
+    onRequestSetDefaultLauncher: () -> Unit,
+    onApplyDeviceWallpaper: () -> Unit,
     onNavigateToTasks: () -> Unit,
     onNavigateToDrawer: () -> Unit,
     modifier: Modifier = Modifier
@@ -88,35 +92,84 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(horizontal = 26.dp, vertical = 28.dp)
         ) {
-            // 1. TOP HEADER: Reward points pill & battery indicator
+            // 1. TOP HEADER: Points earned so far, Wallpaper Sync & Battery
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Focus Points Pill (Dark on light backdrop)
+                // Points Earned So Far Badge
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
                         .background(Color(0x33000000))
                         .border(1.dp, Color(0x33000000), RoundedCornerShape(6.dp))
                         .clickable { onNavigateToTasks() }
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
                     Text(
-                        text = "$focusCredits pts",
+                        text = "Points earned so far: $focusCredits pts",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = topPrimaryTextColor
                     )
                 }
 
-                if (batteryPct >= 0) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Set Device & Lockscreen Wallpaper quick button
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(Color(0x22000000))
+                            .clickable(onClick = onApplyDeviceWallpaper),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Wallpaper,
+                            contentDescription = "Sync Device Wallpaper",
+                            tint = topPrimaryTextColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+
+                    if (batteryPct >= 0) {
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "$batteryPct%",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Medium,
+                            color = topSecondaryTextColor
+                        )
+                    }
+                }
+            }
+
+            // 1b. Prompt Banner if not default home launcher yet
+            if (!isDefaultLauncher) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0x33000000))
+                        .border(1.dp, Color(0x33000000), RoundedCornerShape(8.dp))
+                        .clickable { onRequestSetDefaultLauncher() }
+                        .padding(horizontal = 12.dp, vertical = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     Text(
-                        text = "$batteryPct%",
+                        text = "Set as Default Home Launcher",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Medium,
-                        color = topSecondaryTextColor
+                        color = topPrimaryTextColor
+                    )
+                    Text(
+                        text = "Set Now →",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = topPrimaryTextColor
                     )
                 }
             }
@@ -150,7 +203,7 @@ fun HomeScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(22.dp))
 
             // 3. UPCOMING SCHEDULES (Placed directly under the clock widget)
             Text(

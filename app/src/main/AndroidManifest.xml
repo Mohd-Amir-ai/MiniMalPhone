@@ -3,6 +3,9 @@
 
     <!-- Essential permission to discover all installed apps for an app launcher -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    
+    <!-- Permission to set system and lockscreen wallpaper -->
+    <uses-permission android:name="android.permission.SET_WALLPAPER" />
 
     <application
         android:allowBackup="true"

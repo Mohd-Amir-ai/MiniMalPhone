@@ -1,15 +1,21 @@
 package com.minimalphone.launcher
 
+import android.app.role.RoleManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.os.BatteryManager
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.HorizontalPager
@@ -27,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.minimalphone.launcher.core.crash.CrashReporter
 import com.minimalphone.launcher.core.crash.NoOpCrashReporter
+import com.minimalphone.launcher.core.wallpaper.WallpaperHelper
 import com.minimalphone.launcher.data.apps.AppRepositoryImpl
 import com.minimalphone.launcher.data.economy.EconomyEngineImpl
 import com.minimalphone.launcher.data.local.LocalPreferencesStore
@@ -46,6 +53,7 @@ import com.minimalphone.launcher.ui.AppDrawerScreen
 import com.minimalphone.launcher.ui.FrictionHostScreen
 import com.minimalphone.launcher.ui.HomeScreen
 import com.minimalphone.launcher.ui.TasksScreen
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -57,6 +65,9 @@ class MainActivity : ComponentActivity() {
     private lateinit var economyEngine: EconomyEngine
     private lateinit var appRepository: AppRepository
     private lateinit var activeFriction: FrictionIntervention
+    private lateinit var roleRequestLauncher: ActivityResultLauncher<Intent>
+
+    private var isDefaultHomeState by mutableStateOf(false)
 
     @OptIn(ExperimentalFoundationApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -75,11 +86,70 @@ class MainActivity : ComponentActivity() {
         // Active pluggable friction intervention
         activeFriction = BreathingIntervention(countdownSeconds = 5, defaultCost = 10)
 
+        // Register default home launcher role request
+        roleRequestLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            isDefaultHomeState = isDefaultHomeLauncher()
+        }
+
+        // Apply device and lockscreen wallpaper in background
+        Thread {
+            WallpaperHelper.applyDuneWallpaper(this)
+        }.start()
+
         setContent {
             MiniMalTheme {
                 MainContent()
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        isDefaultHomeState = isDefaultHomeLauncher()
+        if (!isDefaultHomeState) {
+            requestSetDefaultLauncher()
+        }
+    }
+
+    private fun isDefaultHomeLauncher(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val roleManager = getSystemService(RoleManager::class.java)
+            roleManager?.isRoleHeld(RoleManager.ROLE_HOME) == true
+        } else {
+            val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+            val resolveInfo = packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
+            resolveInfo?.activityInfo?.packageName == packageName
+        }
+    }
+
+    private fun requestSetDefaultLauncher() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val roleManager = getSystemService(RoleManager::class.java)
+                if (roleManager != null && roleManager.isRoleAvailable(RoleManager.ROLE_HOME)) {
+                    val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_HOME)
+                    roleRequestLauncher.launch(intent)
+                    return
+                }
+            }
+            val intent = Intent(Settings.ACTION_HOME_SETTINGS)
+            startActivity(intent)
+        } catch (e: Exception) {
+            crashReporter.logException(e, "Failed to launch home role request")
+        }
+    }
+
+    private fun triggerWallpaperApply() {
+        Thread {
+            val success = WallpaperHelper.applyDuneWallpaper(this)
+            runOnUiThread {
+                if (success) {
+                    Toast.makeText(this, "Wallpaper applied to Home & Lock Screen!", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Could not set wallpaper", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }.start()
     }
 
     @OptIn(ExperimentalFoundationApi::class)
@@ -121,6 +191,7 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(Unit) {
             reloadData()
             reloadApps()
+            isDefaultHomeState = isDefaultHomeLauncher()
         }
 
         // Battery state receiver
@@ -222,6 +293,7 @@ class MainActivity : ComponentActivity() {
                         events = events,
                         focusCredits = focusCredits,
                         batteryPct = batteryPct,
+                        isDefaultLauncher = isDefaultHomeState,
                         onLaunchEssential = { type ->
                             appRepository.launchEssentialApp(type)
                         },
@@ -230,6 +302,12 @@ class MainActivity : ComponentActivity() {
                             if (index != -1) {
                                 events[index] = event.copy(isCompleted = !event.isCompleted)
                             }
+                        },
+                        onRequestSetDefaultLauncher = {
+                            requestSetDefaultLauncher()
+                        },
+                        onApplyDeviceWallpaper = {
+                            triggerWallpaperApply()
                         },
                         onNavigateToTasks = {
                             scope.launch { pagerState.animateScrollToPage(0) }
