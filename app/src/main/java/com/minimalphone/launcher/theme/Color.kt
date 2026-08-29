@@ -22,6 +22,7 @@ val AccentBorder = DarkGray600
 val MidGray = MidGray400
 val LightGray = LightGray300
 val ChalkWhite = PureWhite
+val OffWhite = Color(0xFFE8E8E8)
 
 // Backward Compatibility Aliases for Grayscale Look
 val PaperDarkBackground = PureBlack
