@@ -14,15 +14,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -32,8 +28,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.minimalphone.launcher.model.AppInfo
-import com.minimalphone.launcher.model.TaskItem
+import com.minimalphone.launcher.domain.apps.AppModel
+import com.minimalphone.launcher.domain.productivity.TaskItem
 import com.minimalphone.launcher.theme.AccentBorder
 import com.minimalphone.launcher.theme.Black
 import com.minimalphone.launcher.theme.ChalkWhite
@@ -48,11 +44,11 @@ import java.util.Locale
 
 @Composable
 fun HomeScreen(
-    favoriteApps: List<AppInfo>,
+    favoriteApps: List<AppModel>,
     tasks: List<TaskItem>,
     focusCredits: Int,
     batteryPct: Int,
-    onLaunchApp: (AppInfo) -> Unit,
+    onLaunchApp: (AppModel) -> Unit,
     onToggleTask: (TaskItem) -> Unit,
     onNavigateToTasks: () -> Unit,
     onNavigateToDrawer: () -> Unit,
@@ -81,7 +77,7 @@ fun HomeScreen(
             .padding(horizontal = 28.dp, vertical = 36.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Top Section: Time, Date, Battery & Credits
+        // Modular Slot 1: Header (Date, Battery, Focus Credits, Time)
         Column {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -124,7 +120,7 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // Daily Focus Priorities (Rule of 3)
+            // Modular Slot 2: Rule of 3 Priority Tasks Widget
             if (pendingTasks.isNotEmpty()) {
                 Box(
                     modifier = Modifier
@@ -154,9 +150,8 @@ fun HomeScreen(
                                         .size(16.dp)
                                         .clip(RoundedCornerShape(3.dp))
                                         .background(AccentBorder)
-                                        .clickable { onToggleTask(task) },
-                                    contentAlignment = Alignment.Center
-                                ) {}
+                                        .clickable { onToggleTask(task) }
+                                )
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Text(
                                     text = task.title,
@@ -170,14 +165,14 @@ fun HomeScreen(
             }
         }
 
-        // Center/Lower Section: Pinned Text Apps
+        // Modular Slot 3: Text Pinned Apps
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             if (favoriteApps.isEmpty()) {
                 Text(
-                    text = "No pinned apps.\nSwipe right to open all apps and long-press to pin.",
+                    text = "No pinned apps.\nSwipe to app drawer and long-press to pin.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MidGray
                 )
@@ -210,7 +205,7 @@ fun HomeScreen(
             }
         }
 
-        // Bottom Navigation Bar
+        // Modular Slot 4: Navigation Footnotes
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,

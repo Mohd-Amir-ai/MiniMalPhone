@@ -42,7 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.minimalphone.launcher.model.TaskItem
+import com.minimalphone.launcher.domain.productivity.TaskItem
 import com.minimalphone.launcher.theme.AccentBorder
 import com.minimalphone.launcher.theme.Black
 import com.minimalphone.launcher.theme.ChalkWhite
@@ -69,7 +69,6 @@ fun TasksScreen(
             .background(Black)
             .padding(horizontal = 24.dp, vertical = 32.dp)
     ) {
-        // Header
         Text(
             text = "DAILY FOCUS",
             style = MaterialTheme.typography.labelSmall,
@@ -79,7 +78,7 @@ fun TasksScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Focus Credits Banner
+        // Focus Balance Banner
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -116,7 +115,6 @@ fun TasksScreen(
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        // Subtitle: Rule of 3
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -148,7 +146,7 @@ fun TasksScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "No priorities set for today.\nTap + to add your most important task.",
+                    text = "No priorities set for today.\nTap + to add your top focus item.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MidGray,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -242,7 +240,6 @@ private fun TaskRow(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.weight(1f)
         ) {
-            // Minimal Checkbox
             Box(
                 modifier = Modifier
                     .size(22.dp)

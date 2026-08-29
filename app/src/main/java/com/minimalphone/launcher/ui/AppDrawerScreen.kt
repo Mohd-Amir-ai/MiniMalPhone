@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,7 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.minimalphone.launcher.model.AppInfo
+import com.minimalphone.launcher.domain.apps.AppModel
 import com.minimalphone.launcher.theme.AccentBorder
 import com.minimalphone.launcher.theme.Black
 import com.minimalphone.launcher.theme.ChalkWhite
@@ -49,11 +48,11 @@ import com.minimalphone.launcher.theme.PureWhite
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AppDrawerScreen(
-    apps: List<AppInfo>,
-    onLaunchApp: (AppInfo) -> Unit,
-    onToggleFavorite: (AppInfo) -> Unit,
-    onToggleDistraction: (AppInfo) -> Unit,
-    onToggleHide: (AppInfo) -> Unit,
+    apps: List<AppModel>,
+    onLaunchApp: (AppModel) -> Unit,
+    onToggleFavorite: (AppModel) -> Unit,
+    onToggleDistraction: (AppModel) -> Unit,
+    onToggleHide: (AppModel) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var searchQuery by remember { mutableStateOf("") }
@@ -70,7 +69,6 @@ fun AppDrawerScreen(
             .background(Black)
             .padding(horizontal = 24.dp, vertical = 24.dp)
     ) {
-        // Search bar
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
@@ -134,7 +132,7 @@ fun AppDrawerScreen(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AppListItem(
-    app: AppInfo,
+    app: AppModel,
     onLaunch: () -> Unit,
     onToggleFavorite: () -> Unit,
     onToggleDistraction: () -> Unit,
