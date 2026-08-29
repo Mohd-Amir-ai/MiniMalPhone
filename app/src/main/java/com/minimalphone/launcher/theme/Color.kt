@@ -15,3 +15,13 @@ val PaperPencilGray = Color(0xFF92908B)
 val PaperMutedInk = Color(0xFF63615D)
 val PaperFaintDivider = Color(0xFF26292E)
 val PaperAccentDot = Color(0xFFB5B3AD)
+
+// Universal Theme Aliases mapped to Paper Dark Palette
+val Black = PaperDarkBackground
+val DarkSurface = PaperDarkSurface
+val DarkCard = PaperDarkCard
+val AccentBorder = PaperHairlineBorder
+val MidGray = PaperMutedInk
+val LightGray = PaperPencilGray
+val ChalkWhite = PaperChalkWhite
+val PureWhite = PaperChalkWhite
