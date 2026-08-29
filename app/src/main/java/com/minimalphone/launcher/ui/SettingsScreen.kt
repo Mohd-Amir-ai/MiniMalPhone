@@ -167,7 +167,8 @@ fun SettingsScreen(
                             Text(
                                 text = "Turn Off MiniMalPhone & Restore Defaults",
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp
+                                fontSize = 13.sp,
+                                color = Color(0xFFFF6B6B)
                             )
                         }
 
@@ -517,7 +518,11 @@ fun SettingsScreen(
                                 .border(1.dp, Color(0xFF333740), RoundedCornerShape(8.dp)),
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Text("Manage Distraction Apps (${apps.count { it.isDistraction }})", fontSize = 13.sp)
+                            Text(
+                                text = "Manage Distraction Apps (${apps.count { it.isDistraction }})",
+                                fontSize = 13.sp,
+                                color = PureWhite
+                            )
                         }
                     }
                 }

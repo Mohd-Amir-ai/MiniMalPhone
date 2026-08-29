@@ -151,7 +151,8 @@ fun OnboardingScreen(
                     Text(
                         text = if (currentStep < 2) "Continue →" else "Enter MiniMalPhone (+50 pts)",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
+                        fontSize = 14.sp,
+                        color = PureBlack
                     )
                 }
             }
@@ -332,7 +333,12 @@ private fun SetupActionCard(
                 shape = RoundedCornerShape(6.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(buttonLabel, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text(
+                    text = buttonLabel,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    color = if (isDone) Color(0xFF7CE38B) else PureBlack
+                )
             }
         }
     }
