@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Essential permission to discover all installed apps for an app launcher -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
@@ -9,6 +10,11 @@
     
     <!-- Permission for physical motor vibration haptic feedback -->
     <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- Permission for system-wide B/W monochrome hardware display mode -->
+    <uses-permission
+        android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
 
     <application
         android:allowBackup="true"

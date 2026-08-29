@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.minimalphone.launcher.core.crash.CrashReporter
 import com.minimalphone.launcher.core.crash.NoOpCrashReporter
+import com.minimalphone.launcher.core.system.MonochromeModeHelper
 import com.minimalphone.launcher.core.wallpaper.WallpaperHelper
 import com.minimalphone.launcher.data.apps.AppRepositoryImpl
 import com.minimalphone.launcher.data.economy.EconomyEngineImpl
@@ -104,6 +105,9 @@ class MainActivity : ComponentActivity() {
             WallpaperHelper.applyDuneWallpaper(this)
         }.start()
 
+        // Enable system-wide hardware B/W monochrome mode for all apps
+        MonochromeModeHelper.enableMonochrome(this)
+
         setContent {
             MiniMalTheme {
                 MainContent()
@@ -113,6 +117,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        MonochromeModeHelper.enableMonochrome(this)
         isDefaultHomeState = isDefaultHomeLauncher()
         if (!isDefaultHomeState) {
             requestSetDefaultLauncher()
@@ -223,6 +228,7 @@ class MainActivity : ComponentActivity() {
         }
 
         fun handleAppClick(app: AppModel) {
+            MonochromeModeHelper.enableMonochrome(this@MainActivity)
             if (app.isDistraction) {
                 frictionTargetApp = app
             } else {
@@ -303,6 +309,7 @@ class MainActivity : ComponentActivity() {
                         batteryPct = batteryPct,
                         isDefaultLauncher = isDefaultHomeState,
                         onLaunchEssential = { type ->
+                            MonochromeModeHelper.enableMonochrome(this@MainActivity)
                             appRepository.launchEssentialApp(type)
                         },
                         onToggleTask = { task ->

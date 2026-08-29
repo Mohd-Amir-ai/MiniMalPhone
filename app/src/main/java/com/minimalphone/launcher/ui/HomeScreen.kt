@@ -11,7 +11,6 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,6 +33,7 @@ import com.minimalphone.launcher.domain.productivity.TaskItem
 import com.minimalphone.launcher.ui.components.MonochromeWallpaper
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -72,7 +72,25 @@ fun HomeScreen(
     val topPrimaryTextColor = Color(0xFF16181C)
     val topSecondaryTextColor = Color(0xFF484C54)
 
-    val upcomingTasks = tasks.filter { !it.isCompleted }.take(3)
+    // Filter only events that are scheduled within the next 30 minutes
+    fun isWithinNext30Minutes(timeStr: String): Boolean {
+        return try {
+            val sdf = SimpleDateFormat("h:mm a", Locale.getDefault())
+            val parsed = sdf.parse(timeStr.trim()) ?: return false
+            val calTask = Calendar.getInstance().apply { time = parsed }
+            val taskMins = calTask.get(Calendar.HOUR_OF_DAY) * 60 + calTask.get(Calendar.MINUTE)
+
+            val calNow = Calendar.getInstance()
+            val nowMins = calNow.get(Calendar.HOUR_OF_DAY) * 60 + calNow.get(Calendar.MINUTE)
+
+            val diff = taskMins - nowMins
+            diff in 0..30
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    val next30MinTasks = tasks.filter { !it.isCompleted && isWithinNext30Minutes(it.scheduledTime) }
 
     Box(modifier = modifier.fillMaxSize()) {
         // Procedural Layered Monochrome Wallpaper
@@ -84,72 +102,35 @@ fun HomeScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(horizontal = 26.dp, vertical = 16.dp)
+                .padding(horizontal = 26.dp, vertical = 14.dp)
         ) {
-            // 1. TOP HEADER: Points earned so far & Battery
+            // 1. TOP HEADER: Clean minimal battery (Points box & wallpaper box removed per request)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Points Earned So Far Pill
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(Color(0x33000000))
-                        .border(1.dp, Color(0x33000000), RoundedCornerShape(6.dp))
-                        .clickable { onNavigateToTasks() }
-                        .padding(horizontal = 10.dp, vertical = 5.dp)
-                ) {
+                if (batteryPct >= 0) {
                     Text(
-                        text = "Points earned so far: $focusCredits pts",
+                        text = "$batteryPct%",
                         style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = topPrimaryTextColor
+                        fontWeight = FontWeight.Medium,
+                        color = topSecondaryTextColor
                     )
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Sync Device Wallpaper icon button
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(Color(0x22000000))
-                            .clickable(onClick = onApplyDeviceWallpaper),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Wallpaper,
-                            contentDescription = "Sync Wallpaper",
-                            tint = topPrimaryTextColor,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-
-                    if (batteryPct >= 0) {
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "$batteryPct%",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Medium,
-                            color = topSecondaryTextColor
-                        )
-                    }
                 }
             }
 
-            // 1b. Set as Default Home banner (if not default)
+            // 1b. Set as Default Home banner (only shown if not yet default)
             if (!isDefaultLauncher) {
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0x33000000))
+                        .background(Color(0x22000000))
                         .border(1.dp, Color(0x33000000), RoundedCornerShape(8.dp))
                         .clickable { onRequestSetDefaultLauncher() }
-                        .padding(horizontal = 12.dp, vertical = 7.dp),
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -168,12 +149,12 @@ fun HomeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // 2. TOP-LEFT STACKED CLOCK WIDGET (Bolder and bigger)
+            // 2. TOP-LEFT STACKED CLOCK WIDGET
             Column(horizontalAlignment = Alignment.Start) {
                 Text(
-                    text = hourString.ifEmpty { "17" },
+                    text = hourString.ifEmpty { "16" },
                     fontSize = 78.sp,
                     lineHeight = 76.sp,
                     fontWeight = FontWeight.Normal,
@@ -181,7 +162,7 @@ fun HomeScreen(
                     color = topPrimaryTextColor
                 )
                 Text(
-                    text = minuteString.ifEmpty { "06" },
+                    text = minuteString.ifEmpty { "42" },
                     fontSize = 78.sp,
                     lineHeight = 76.sp,
                     fontWeight = FontWeight.Normal,
@@ -190,120 +171,82 @@ fun HomeScreen(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = dateString.ifEmpty { "Thu 6 March" },
+                    text = dateString.ifEmpty { "Sat 29 August" },
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
                     color = topSecondaryTextColor
                 )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
-            // 3. UPCOMING SCHEDULES (Non-all capital text)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            // 3. UPCOMING SCHEDULES (Only events within next 30 minutes, seamless with wallpaper)
+            if (next30MinTasks.isNotEmpty()) {
                 Text(
-                    text = "Upcoming schedules",
-                    style = MaterialTheme.typography.titleMedium,
+                    text = "Upcoming schedules (next 30m)",
+                    style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = topPrimaryTextColor
                 )
 
-                Text(
-                    text = "View all →",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = topSecondaryTextColor,
-                    modifier = Modifier.clickable { onNavigateToTasks() }
-                )
-            }
+                Spacer(modifier = Modifier.height(6.dp))
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xDD1C1E23))
-                    .border(1.dp, Color(0x44FFFFFF), RoundedCornerShape(12.dp))
-                    .padding(horizontal = 18.dp, vertical = 14.dp)
-            ) {
-                if (upcomingTasks.isEmpty()) {
-                    Text(
-                        text = "All caught up! Tap 'View all' to add a schedule.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFFA0A4AC)
-                    )
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        upcomingTasks.forEach { task ->
+                // Seamless, minimal container with 100% wallpaper blending
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    next30MinTasks.forEach { task ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onToggleTask(task) }
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onToggleTask(task) },
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                modifier = Modifier.weight(1f)
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(8.dp)
-                                            .clip(CircleShape)
-                                            .background(Color.White)
-                                    )
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(topPrimaryTextColor)
+                                )
 
-                                    Spacer(modifier = Modifier.width(12.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
 
-                                    Text(
-                                        text = task.title,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.Normal,
-                                        color = Color.White
-                                    )
-                                }
-
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = task.scheduledTime,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = Color(0xFFD0D3D8)
-                                    )
-
-                                    Spacer(modifier = Modifier.width(8.dp))
-
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(3.dp))
-                                            .background(Color(0xFF2C2F36))
-                                            .padding(horizontal = 5.dp, vertical = 2.dp)
-                                    ) {
-                                        Text(
-                                            text = "+${task.rewardPoints}",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontSize = 9.sp,
-                                            color = Color.White
-                                        )
-                                    }
-                                }
+                                Text(
+                                    text = task.title,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = topPrimaryTextColor
+                                )
                             }
+
+                            Text(
+                                text = task.scheduledTime,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = topSecondaryTextColor
+                            )
                         }
                     }
                 }
             }
 
-            // Pushes everything else down so time and schedules stay firmly at the top
+            // Pushes everything down so top section stays at top and icons at bottom
             Spacer(modifier = Modifier.weight(1f))
 
             // 4. BOTTOM SECTION: 4 Circular Minimal Icon Buttons
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
+                    .padding(horizontal = 8.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -331,33 +274,6 @@ fun HomeScreen(
                     onClick = { onLaunchEssential(EssentialAppType.CAMERA) }
                 )
             }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Minimal Navigation Footers
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "← Tasks",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFF8E9299),
-                    modifier = Modifier
-                        .clickable { onNavigateToTasks() }
-                        .padding(vertical = 4.dp)
-                )
-
-                Text(
-                    text = "All Apps →",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFF8E9299),
-                    modifier = Modifier
-                        .clickable { onNavigateToDrawer() }
-                        .padding(vertical = 4.dp)
-                )
-            }
         }
     }
 }
@@ -370,7 +286,7 @@ private fun MinimalCircularIconButton(
 ) {
     Box(
         modifier = Modifier
-            .size(54.dp)
+            .size(56.dp)
             .clip(CircleShape)
             .background(Color(0xFF222429))
             .border(1.dp, Color(0xFF3E434D), CircleShape)

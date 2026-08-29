@@ -11,13 +11,19 @@ import android.view.View
 
 object HapticHelper {
 
+    private var lastVibrateTime = 0L
+
     /**
-     * Triggers a guaranteed physical vibration motor tick pulse on the phone,
-     * plus auditory mechanical click feedback.
+     * Triggers boosted physical vibration motor tick pulse (+30% stronger)
+     * with mechanical sound click feedback.
      */
     fun triggerScrollTick(context: Context, view: View?) {
+        val now = System.currentTimeMillis()
+        if (now - lastVibrateTime < 25) return // Prevent overlapping vibration clipping
+        lastVibrateTime = now
+
         try {
-            // 1. Direct hardware linear vibration motor activation
+            // 1. Direct hardware linear vibration motor activation (Boosted by 30%)
             val vibrator: Vibrator? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val manager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
                 manager?.defaultVibrator
@@ -28,25 +34,23 @@ object HapticHelper {
 
             if (vibrator != null && vibrator.hasVibrator()) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    // Send a sharp 14ms vibration pulse with solid amplitude
-                    vibrator.vibrate(VibrationEffect.createOneShot(14, 180))
+                    // 20ms duration at 245/255 amplitude (+30% punchier)
+                    vibrator.vibrate(VibrationEffect.createOneShot(20, 245))
                 } else {
                     @Suppress("DEPRECATION")
-                    vibrator.vibrate(14)
+                    vibrator.vibrate(20)
                 }
             }
 
-            // 2. View-level haptic feedback (ignoring global setting to guarantee response)
-            if (view != null) {
-                view.performHapticFeedback(
-                    HapticFeedbackConstants.CLOCK_TICK,
-                    HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING or HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING
-                )
-                // 3. Native system mechanical click sound
-                view.playSoundEffect(SoundEffectConstants.CLICK)
-            }
+            // 2. View-level haptic tick
+            view?.performHapticFeedback(
+                HapticFeedbackConstants.CLOCK_TICK,
+                HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING or HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING
+            )
+            // 3. System click sound
+            view?.playSoundEffect(SoundEffectConstants.CLICK)
         } catch (e: Exception) {
-            // Silently handle any restriction
+            // Silently ignore
         }
     }
 }
