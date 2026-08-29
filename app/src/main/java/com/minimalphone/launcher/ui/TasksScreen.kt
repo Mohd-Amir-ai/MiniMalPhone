@@ -69,7 +69,9 @@ fun TasksScreen(
         modifier = modifier
             .fillMaxSize()
             .background(PureBlack)
-            .padding(horizontal = 24.dp, vertical = 28.dp)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
         // Top Header
         Row(

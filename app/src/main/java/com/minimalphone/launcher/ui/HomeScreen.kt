@@ -92,7 +92,9 @@ fun HomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 26.dp, vertical = 26.dp)
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = 26.dp, vertical = 16.dp)
         ) {
             // 1. TOP HEADER: Points earned so far & Battery
             Row(

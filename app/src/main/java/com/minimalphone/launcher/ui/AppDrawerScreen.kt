@@ -67,7 +67,9 @@ fun AppDrawerScreen(
         modifier = modifier
             .fillMaxSize()
             .background(Black)
-            .padding(horizontal = 24.dp, vertical = 24.dp)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
         OutlinedTextField(
             value = searchQuery,
