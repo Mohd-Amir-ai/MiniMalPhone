@@ -1,11 +1,16 @@
 package com.minimalphone.launcher.data.apps
 
+import android.app.SearchManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.provider.MediaStore
+import android.provider.Telephony
 import com.minimalphone.launcher.core.crash.CrashReporter
 import com.minimalphone.launcher.data.local.LocalPreferencesStore
 import com.minimalphone.launcher.domain.apps.AppModel
 import com.minimalphone.launcher.domain.apps.AppRepository
+import com.minimalphone.launcher.domain.apps.EssentialAppType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -40,17 +45,6 @@ class AppRepositoryImpl(
                 )
             }
             .sortedBy { it.label.lowercase() }
-
-        // Seed default favorites if first run
-        if (favorites.isEmpty() && apps.isNotEmpty()) {
-            val defaults = apps.filter {
-                val lower = it.label.lowercase()
-                lower.contains("phone") || lower.contains("message") ||
-                    lower.contains("camera") || lower.contains("browser") || lower.contains("chrome")
-            }.take(4).map { it.packageName }.toSet()
-            store.setFavoritePackageNames(defaults)
-            return@withContext apps.map { it.copy(isFavorite = defaults.contains(it.packageName)) }
-        }
 
         apps
     }
@@ -108,6 +102,45 @@ class AppRepositoryImpl(
             }
         } catch (e: Exception) {
             crashReporter.logException(e, "Failed to launch $packageName")
+            false
+        }
+    }
+
+    override fun launchEssentialApp(type: EssentialAppType): Boolean {
+        return try {
+            val intent = when (type) {
+                EssentialAppType.PHONE -> Intent(Intent.ACTION_DIAL)
+                EssentialAppType.SEARCH -> Intent(Intent.ACTION_WEB_SEARCH).apply {
+                    putExtra(SearchManager.QUERY, "")
+                }
+                EssentialAppType.MESSAGES -> {
+                    val defaultSms = Telephony.Sms.getDefaultSmsPackage(context)
+                    if (defaultSms != null) {
+                        context.packageManager.getLaunchIntentForPackage(defaultSms) ?: Intent(Intent.ACTION_MAIN).apply {
+                            addCategory(Intent.CATEGORY_APP_MESSAGING)
+                        }
+                    } else {
+                        Intent(Intent.ACTION_MAIN).apply {
+                            addCategory(Intent.CATEGORY_APP_MESSAGING)
+                        }
+                    }
+                }
+                EssentialAppType.CAMERA -> Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)
+            }
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+            crashReporter.logBreadcrumb("AppLaunch", "Launched essential app: $type")
+            true
+        } catch (e: Exception) {
+            if (type == EssentialAppType.SEARCH) {
+                try {
+                    val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com"))
+                    browserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(browserIntent)
+                    return true
+                } catch (ignored: Exception) {}
+            }
+            crashReporter.logException(e, "Failed to launch essential app: $type")
             false
         }
     }

@@ -1,6 +1,7 @@
 package com.minimalphone.launcher.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,15 +30,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.minimalphone.launcher.domain.apps.AppModel
-import com.minimalphone.launcher.domain.productivity.TaskItem
-import com.minimalphone.launcher.theme.AccentBorder
-import com.minimalphone.launcher.theme.Black
-import com.minimalphone.launcher.theme.ChalkWhite
-import com.minimalphone.launcher.theme.DarkCard
-import com.minimalphone.launcher.theme.LightGray
-import com.minimalphone.launcher.theme.MidGray
-import com.minimalphone.launcher.theme.PureWhite
+import com.minimalphone.launcher.domain.apps.EssentialAppType
+import com.minimalphone.launcher.domain.productivity.EventItem
+import com.minimalphone.launcher.theme.PaperAccentDot
+import com.minimalphone.launcher.theme.PaperChalkWhite
+import com.minimalphone.launcher.theme.PaperDarkBackground
+import com.minimalphone.launcher.theme.PaperDarkCard
+import com.minimalphone.launcher.theme.PaperHairlineBorder
+import com.minimalphone.launcher.theme.PaperMutedInk
+import com.minimalphone.launcher.theme.PaperPencilGray
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -44,12 +46,11 @@ import java.util.Locale
 
 @Composable
 fun HomeScreen(
-    favoriteApps: List<AppModel>,
-    tasks: List<TaskItem>,
+    events: List<EventItem>,
     focusCredits: Int,
     batteryPct: Int,
-    onLaunchApp: (AppModel) -> Unit,
-    onToggleTask: (TaskItem) -> Unit,
+    onLaunchEssential: (EssentialAppType) -> Unit,
+    onToggleEvent: (EventItem) -> Unit,
     onNavigateToTasks: () -> Unit,
     onNavigateToDrawer: () -> Unit,
     modifier: Modifier = Modifier
@@ -58,7 +59,7 @@ fun HomeScreen(
     var currentDate by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        val timeFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
         val dateFormat = SimpleDateFormat("EEEE, MMMM d", Locale.getDefault())
         while (true) {
             val now = Date()
@@ -68,136 +69,127 @@ fun HomeScreen(
         }
     }
 
-    val pendingTasks = tasks.filter { !it.isCompleted }.take(3)
-
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Black)
-            .padding(horizontal = 28.dp, vertical = 36.dp),
+            .background(PaperDarkBackground)
+            .padding(horizontal = 28.dp, vertical = 34.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Modular Slot 1: Header (Date, Battery, Focus Credits, Time)
-        Column {
+        // TOP SECTION: Aligned to the Top-Right (Time, Day/Date, Reward Points)
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.End
+        ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End
             ) {
-                Text(
-                    text = currentDate.uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    letterSpacing = 2.sp,
-                    color = LightGray
-                )
+                if (batteryPct >= 0) {
+                    Text(
+                        text = "$batteryPct%",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PaperMutedInk,
+                        modifier = Modifier.padding(end = 10.dp)
+                    )
+                }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (batteryPct >= 0) {
-                        Text(
-                            text = "$batteryPct%",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = LightGray,
-                            modifier = Modifier.padding(end = 12.dp)
-                        )
-                    }
+                // Focus Reward Points Pill
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(PaperDarkCard)
+                        .border(1.dp, PaperHairlineBorder, RoundedCornerShape(4.dp))
+                        .clickable { onNavigateToTasks() }
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
                     Text(
                         text = "$focusCredits pts",
                         style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = PureWhite
+                        fontWeight = FontWeight.Medium,
+                        color = PaperChalkWhite
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
+            // Large Minimal Time
             Text(
                 text = currentTime.ifEmpty { "--:--" },
                 style = MaterialTheme.typography.displayLarge,
                 fontWeight = FontWeight.Light,
-                color = PureWhite
+                letterSpacing = (-1).sp,
+                color = PaperChalkWhite
             )
 
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // Modular Slot 2: Rule of 3 Priority Tasks Widget
-            if (pendingTasks.isNotEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(DarkCard)
-                        .clickable { onNavigateToTasks() }
-                        .padding(16.dp)
-                ) {
-                    Column {
-                        Text(
-                            text = "TODAY'S PRIORITIES",
-                            style = MaterialTheme.typography.labelSmall,
-                            letterSpacing = 2.sp,
-                            color = LightGray
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        pendingTasks.forEach { task ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(16.dp)
-                                        .clip(RoundedCornerShape(3.dp))
-                                        .background(AccentBorder)
-                                        .clickable { onToggleTask(task) }
-                                )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text(
-                                    text = task.title,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = ChalkWhite
-                                )
-                            }
-                        }
-                    }
-                }
-            }
+            // Day and Date
+            Text(
+                text = currentDate.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                letterSpacing = 2.sp,
+                color = PaperPencilGray
+            )
         }
 
-        // Modular Slot 3: Text Pinned Apps
+        // MIDDLE SECTION: Upcoming Events (Paper Display Card)
         Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp)
         ) {
-            if (favoriteApps.isEmpty()) {
-                Text(
-                    text = "No pinned apps.\nSwipe to app drawer and long-press to pin.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MidGray
-                )
-            } else {
-                favoriteApps.take(6).forEach { app ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onLaunchApp(app) }
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = app.label.lowercase(),
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Light,
-                            color = PureWhite
-                        )
+            Text(
+                text = "UPCOMING SCHEDULE",
+                style = MaterialTheme.typography.labelSmall,
+                letterSpacing = 2.5.sp,
+                color = PaperPencilGray
+            )
 
-                        if (app.isDistraction) {
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(PaperDarkCard)
+                    .border(1.dp, PaperHairlineBorder, RoundedCornerShape(6.dp))
+                    .padding(horizontal = 18.dp, vertical = 18.dp)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    events.forEach { event ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onToggleEvent(event) },
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                // Tactile paper dot / indicator
+                                Box(
+                                    modifier = Modifier
+                                        .size(7.dp)
+                                        .clip(CircleShape)
+                                        .background(if (event.isCompleted) PaperMutedInk else PaperAccentDot)
+                                )
+
+                                Spacer(modifier = Modifier.width(14.dp))
+
+                                Text(
+                                    text = event.title,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Normal,
+                                    color = if (event.isCompleted) PaperMutedInk else PaperChalkWhite
+                                )
+                            }
+
                             Text(
-                                text = "mindful",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MidGray
+                                text = event.timeFormatted,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (event.isCompleted) PaperMutedInk else PaperPencilGray
                             )
                         }
                     }
@@ -205,29 +197,94 @@ fun HomeScreen(
             }
         }
 
-        // Modular Slot 4: Navigation Footnotes
-        Row(
+        // BOTTOM SECTION: 4 Essential Apps (Phone, Google Search, Messaging, Camera)
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "← Tasks",
-                style = MaterialTheme.typography.bodyMedium,
-                color = LightGray,
-                modifier = Modifier
-                    .clickable { onNavigateToTasks() }
-                    .padding(8.dp)
+                text = "ESSENTIALS",
+                style = MaterialTheme.typography.labelSmall,
+                letterSpacing = 2.5.sp,
+                color = PaperPencilGray
             )
 
-            Text(
-                text = "All Apps →",
-                style = MaterialTheme.typography.bodyMedium,
-                color = LightGray,
-                modifier = Modifier
-                    .clickable { onNavigateToDrawer() }
-                    .padding(8.dp)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 1. Phone
+                Text(
+                    text = "phone",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Light,
+                    color = PaperChalkWhite,
+                    modifier = Modifier
+                        .clickable { onLaunchEssential(EssentialAppType.PHONE) }
+                        .padding(vertical = 8.dp)
+                )
+
+                // 2. Google / Search
+                Text(
+                    text = "google",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Light,
+                    color = PaperChalkWhite,
+                    modifier = Modifier
+                        .clickable { onLaunchEssential(EssentialAppType.SEARCH) }
+                        .padding(vertical = 8.dp)
+                )
+
+                // 3. Messages
+                Text(
+                    text = "messages",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Light,
+                    color = PaperChalkWhite,
+                    modifier = Modifier
+                        .clickable { onLaunchEssential(EssentialAppType.MESSAGES) }
+                        .padding(vertical = 8.dp)
+                )
+
+                // 4. Camera
+                Text(
+                    text = "camera",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Light,
+                    color = PaperChalkWhite,
+                    modifier = Modifier
+                        .clickable { onLaunchEssential(EssentialAppType.CAMERA) }
+                        .padding(vertical = 8.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Minimal Navigation Footnotes
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "← Daily Tasks",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = PaperMutedInk,
+                    modifier = Modifier
+                        .clickable { onNavigateToTasks() }
+                        .padding(vertical = 4.dp)
+                )
+
+                Text(
+                    text = "All Apps →",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = PaperMutedInk,
+                    modifier = Modifier
+                        .clickable { onNavigateToDrawer() }
+                        .padding(vertical = 4.dp)
+                )
+            }
         }
     }
 }

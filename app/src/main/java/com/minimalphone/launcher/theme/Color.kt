@@ -2,11 +2,16 @@ package com.minimalphone.launcher.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Black = Color(0xFF000000)
-val DarkSurface = Color(0xFF121212)
-val DarkCard = Color(0xFF1E1E1E)
-val MidGray = Color(0xFF4A4A4A)
-val LightGray = Color(0xFF8E8E8E)
-val ChalkWhite = Color(0xFFF5F5F5)
-val PureWhite = Color(0xFFFFFFFF)
-val AccentBorder = Color(0xFF2C2C2C)
+// Paper Display Dark Palette (Kindle / E-Ink Dark Mode Aesthetic)
+// Warm, non-reflective matte ink tones instead of harsh synthetic OLED glare
+val PaperDarkBackground = Color(0xFF131416)
+val PaperDarkSurface = Color(0xFF1B1D20)
+val PaperDarkCard = Color(0xFF22252A)
+val PaperHairlineBorder = Color(0xFF2E3238)
+
+// Chalk / Newsprint typography (Tactile paper contrast)
+val PaperChalkWhite = Color(0xFFE8E6E1)
+val PaperPencilGray = Color(0xFF92908B)
+val PaperMutedInk = Color(0xFF63615D)
+val PaperFaintDivider = Color(0xFF26292E)
+val PaperAccentDot = Color(0xFFB5B3AD)

@@ -8,9 +8,15 @@ data class AppModel(
     val isDistraction: Boolean = false
 )
 
+enum class EssentialAppType {
+    PHONE,
+    SEARCH,
+    MESSAGES,
+    CAMERA
+}
+
 /**
  * Extensible App Repository contract.
- * Manages app indexing, categories, favorites, and launching.
  */
 interface AppRepository {
     suspend fun getInstalledApps(): List<AppModel>
@@ -18,4 +24,5 @@ interface AppRepository {
     suspend fun toggleDistraction(packageName: String): Boolean
     suspend fun toggleHidden(packageName: String): Boolean
     fun launchApp(packageName: String): Boolean
+    fun launchEssentialApp(type: EssentialAppType): Boolean
 }

@@ -1,8 +1,7 @@
 <resources>
-    <color name="black">#000000</color>
-    <color name="white">#FFFFFF</color>
-    <color name="dark_gray">#1A1A1A</color>
-    <color name="mid_gray">#404040</color>
-    <color name="light_gray">#8A8A8A</color>
-    <color name="accent_chalk">#E0E0E0</color>
+    <color name="paper_dark_bg">#131416</color>
+    <color name="paper_chalk_white">#E8E6E1</color>
+    <color name="paper_card">#22252A</color>
+    <color name="paper_border">#2E3238</color>
+    <color name="paper_pencil_gray">#92908B</color>
 </resources>

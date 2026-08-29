@@ -1,8 +1,8 @@
 <resources>
     <style name="Theme.MiniMalPhone" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">@color/black</item>
-        <item name="android:statusBarColor">@color/black</item>
-        <item name="android:navigationBarColor">@color/black</item>
+        <item name="android:windowBackground">@color/paper_dark_bg</item>
+        <item name="android:statusBarColor">@color/paper_dark_bg</item>
+        <item name="android:navigationBarColor">@color/paper_dark_bg</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
     </style>

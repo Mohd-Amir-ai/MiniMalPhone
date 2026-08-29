@@ -9,19 +9,20 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val MonochromeColorScheme = darkColorScheme(
-    primary = PureWhite,
-    onPrimary = Black,
-    primaryContainer = DarkCard,
-    onPrimaryContainer = PureWhite,
-    secondary = ChalkWhite,
-    onSecondary = Black,
-    background = Black,
-    onBackground = ChalkWhite,
-    surface = Black,
-    onSurface = ChalkWhite,
-    surfaceVariant = DarkSurface,
-    onSurfaceVariant = LightGray
+private val PaperDarkColorScheme = darkColorScheme(
+    primary = PaperChalkWhite,
+    onPrimary = PaperDarkBackground,
+    primaryContainer = PaperDarkCard,
+    onPrimaryContainer = PaperChalkWhite,
+    secondary = PaperPencilGray,
+    onSecondary = PaperDarkBackground,
+    background = PaperDarkBackground,
+    onBackground = PaperChalkWhite,
+    surface = PaperDarkBackground,
+    onSurface = PaperChalkWhite,
+    surfaceVariant = PaperDarkSurface,
+    onSurfaceVariant = PaperPencilGray,
+    outline = PaperHairlineBorder
 )
 
 @Composable
@@ -32,8 +33,8 @@ fun MiniMalTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = Black.toArgb()
-            window.navigationBarColor = Black.toArgb()
+            window.statusBarColor = PaperDarkBackground.toArgb()
+            window.navigationBarColor = PaperDarkBackground.toArgb()
             val insetsController = WindowCompat.getInsetsController(window, view)
             insetsController.isAppearanceLightStatusBars = false
             insetsController.isAppearanceLightNavigationBars = false
@@ -41,7 +42,7 @@ fun MiniMalTheme(
     }
 
     MaterialTheme(
-        colorScheme = MonochromeColorScheme,
+        colorScheme = PaperDarkColorScheme,
         typography = Typography,
         content = content
     )

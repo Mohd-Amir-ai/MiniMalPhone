@@ -33,10 +33,12 @@ import com.minimalphone.launcher.data.local.LocalPreferencesStore
 import com.minimalphone.launcher.data.local.LocalTaskDataSourceImpl
 import com.minimalphone.launcher.domain.apps.AppModel
 import com.minimalphone.launcher.domain.apps.AppRepository
+import com.minimalphone.launcher.domain.apps.EssentialAppType
 import com.minimalphone.launcher.domain.economy.EconomyEngine
 import com.minimalphone.launcher.domain.economy.EconomyEvent
 import com.minimalphone.launcher.domain.friction.FrictionIntervention
 import com.minimalphone.launcher.domain.friction.interventions.BreathingIntervention
+import com.minimalphone.launcher.domain.productivity.EventItem
 import com.minimalphone.launcher.domain.productivity.TaskDataSource
 import com.minimalphone.launcher.domain.productivity.TaskItem
 import com.minimalphone.launcher.theme.MiniMalTheme
@@ -48,7 +50,7 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
-    // Core Services & Repositories (Pluggable)
+    // Extensible Core Contracts
     private lateinit var crashReporter: CrashReporter
     private lateinit var prefsStore: LocalPreferencesStore
     private lateinit var taskDataSource: TaskDataSource
@@ -60,17 +62,17 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Initialize Core Crash Reporting Layer (pluggable with Sentry / Firebase)
+        // Initialize Core Crash Reporter (ready for Sentry / Firebase)
         crashReporter = NoOpCrashReporter().apply { initialize() }
         crashReporter.logBreadcrumb("Lifecycle", "MainActivity onCreate")
 
-        // Initialize Data & Domain layers
+        // Initialize Data & Domain dependencies
         prefsStore = LocalPreferencesStore(this)
         taskDataSource = LocalTaskDataSourceImpl(prefsStore)
         economyEngine = EconomyEngineImpl(prefsStore, crashReporter)
         appRepository = AppRepositoryImpl(this, prefsStore, crashReporter)
 
-        // Pluggable friction intervention (can be swapped or configured)
+        // Active pluggable friction intervention
         activeFriction = BreathingIntervention(countdownSeconds = 5, defaultCost = 10)
 
         setContent {
@@ -89,6 +91,13 @@ class MainActivity : ComponentActivity() {
 
         val allApps = remember { mutableStateListOf<AppModel>() }
         val tasks = remember { mutableStateListOf<TaskItem>() }
+        val events = remember {
+            mutableStateListOf(
+                EventItem(id = 1L, title = "Make a post on X", timeFormatted = "2:30 PM"),
+                EventItem(id = 2L, title = "Study book", timeFormatted = "3:00 PM")
+            )
+        }
+
         var focusCredits by remember { mutableIntStateOf(economyEngine.getCurrentBalance()) }
         var batteryPct by remember { mutableIntStateOf(-1) }
         var frictionTargetApp by remember { mutableStateOf<AppModel?>(null) }
@@ -114,7 +123,7 @@ class MainActivity : ComponentActivity() {
             reloadApps()
         }
 
-        // Battery level observer
+        // Battery state receiver
         DisposableEffect(Unit) {
             val receiver = object : BroadcastReceiver() {
                 override fun onReceive(context: Context?, intent: Intent?) {
@@ -131,7 +140,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Back button: return to Home or dismiss active friction
+        // Back button: return to Home or dismiss friction
         BackHandler(enabled = frictionTargetApp != null || pagerState.currentPage != 1) {
             if (frictionTargetApp != null) {
                 frictionTargetApp = null
@@ -147,8 +156,6 @@ class MainActivity : ComponentActivity() {
                 appRepository.launchApp(app.packageName)
             }
         }
-
-        val favoriteApps = allApps.filter { it.isFavorite && !it.isHidden }
 
         if (frictionTargetApp != null) {
             val target = frictionTargetApp!!
@@ -212,22 +219,16 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                     1 -> HomeScreen(
-                        favoriteApps = favoriteApps,
-                        tasks = tasks,
+                        events = events,
                         focusCredits = focusCredits,
                         batteryPct = batteryPct,
-                        onLaunchApp = { handleAppClick(it) },
-                        onToggleTask = { task ->
-                            scope.launch {
-                                val nextStatus = !task.isCompleted
-                                taskDataSource.updateTaskStatus(task.id, nextStatus)
-                                if (nextStatus) {
-                                    economyEngine.processEvent(EconomyEvent.TaskCompleted(task.id, task.rewardPoints))
-                                    Toast.makeText(this@MainActivity, "+${task.rewardPoints} Focus Credits earned!", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    economyEngine.processEvent(EconomyEvent.TaskUncompleted(task.id, task.rewardPoints))
-                                }
-                                reloadData()
+                        onLaunchEssential = { type ->
+                            appRepository.launchEssentialApp(type)
+                        },
+                        onToggleEvent = { event ->
+                            val index = events.indexOfFirst { it.id == event.id }
+                            if (index != -1) {
+                                events[index] = event.copy(isCompleted = !event.isCompleted)
                             }
                         },
                         onNavigateToTasks = {
