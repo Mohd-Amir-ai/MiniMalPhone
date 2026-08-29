@@ -162,7 +162,7 @@ def flash_apk_to_phone(apk_file):
 
     combined_output = (res.stdout or "") + (res.stderr or "")
     if "Success" in combined_output:
-        print(f"\n{GREEN}{BOLD}🎉 SUCCESS: App installed on phone!{RESET}")
+        print(f"\n{GREEN}{BOLD}[SUCCESS] App installed on phone!{RESET}")
         print(f"{CYAN}Launching MiniMalPhone on your screen...{RESET}")
         launch_cmd = [str(ADB_PATH), "shell", "am", "start", "-n", "com.minimalphone.launcher/.MainActivity"]
         subprocess.run(launch_cmd, capture_output=True, text=True)
