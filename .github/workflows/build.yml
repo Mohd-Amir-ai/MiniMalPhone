@@ -7,6 +7,9 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build Android APK
@@ -30,9 +33,27 @@ jobs:
       - name: Build Debug APK
         run: gradle assembleDebug --stacktrace
 
-      - name: Upload Debug APK Artifact
+      - name: Package APK Zip
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk dist/MiniMalPhone-debug.apk
+          cd dist && zip MiniMalPhone-debug.zip MiniMalPhone-debug.apk
+
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: MiniMalPhone-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
+
+      - name: Publish to Latest Release (Public Direct Download)
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: latest
+          name: "MiniMalPhone Latest Build"
+          files: |
+            dist/MiniMalPhone-debug.apk
+            dist/MiniMalPhone-debug.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

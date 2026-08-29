@@ -10,3 +10,7 @@
 local.properties
 *.apk
 *.aab
+
+# Local development tools and builds cache
+/tools
+/builds
