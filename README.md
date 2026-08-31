@@ -1,4 +1,4 @@
-# MiniMalPhone 📱
+# MiniMalPhone
 
 > An open-source, minimalist Android launcher designed to transform your smartphone into a distraction-free tool. It combines an ultra-clean monochrome design with a **dopamine-swap focus engine** that turns doom-scrolling into earned, reward-driven productivity.
 
